@@ -9,9 +9,10 @@ $filtro_tipo = $_GET['tipo_equipo'] ?? '';
 $filtro_marca = $_GET['marca'] ?? '';
 $filtro_estado = $_GET['estado'] ?? '';
 
-$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-$tipos_equipo = $conexion->query("SELECT id, nombre FROM tipos_equipo ORDER BY nombre");
-$marcas = $conexion->query("SELECT id, nombre FROM marcas ORDER BY nombre");
+$id_empresa = (int) empresa_id_activa();
+$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' AND id_empresa = $id_empresa ORDER BY nombre");
+$tipos_equipo = $conexion->query("SELECT id, nombre FROM tipos_equipo WHERE id_empresa = $id_empresa ORDER BY nombre");
+$marcas = $conexion->query("SELECT id, nombre FROM marcas WHERE id_empresa = $id_empresa ORDER BY nombre");
 
 $sql = "SELECT e.*, s.nombre AS sucursal_nombre, t.nombre AS tipo_nombre, ma.nombre as marca_nombre, mo.nombre as modelo_nombre
         FROM equipos e
@@ -28,6 +29,7 @@ if (!empty($filtro_tipo)) $where_clauses[] = "e.id_tipo_equipo = " . (int)$filtr
 if (!empty($filtro_marca)) $where_clauses[] = "e.id_marca = " . (int)$filtro_marca;
 if (!empty($filtro_estado)) $where_clauses[] = "e.estado = '" . $conexion->real_escape_string($filtro_estado) . "'";
 
+$where_clauses[] = "e.id_empresa = " . (int) empresa_id_activa();
 if (isset($_SESSION['user_sucursal_id']) && $_SESSION['user_sucursal_id'] !== null) {
      $where_clauses[] = "e.id_sucursal = " . (int)$_SESSION['user_sucursal_id'];
 }

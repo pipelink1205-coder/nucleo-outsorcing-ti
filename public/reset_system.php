@@ -2,7 +2,7 @@
 require_once '../templates/header.php';
 
 // SEGURIDAD: Solo administradores pueden ver esto
-if (!isset($_SESSION['user_rol']) || (strtolower($_SESSION['user_rol']) !== 'administrador' && strtolower($_SESSION['user_rol']) !== 'admin')) {
+if (strtolower($_SESSION['user_rol'] ?? '') !== 'operador') {
     echo '<div class="container mt-5"><div class="alert alert-danger shadow-sm border-0">⛔ Acceso denegado. Se requieren permisos de Administrador Global.</div></div>';
     require_once '../templates/footer.php';
     exit();

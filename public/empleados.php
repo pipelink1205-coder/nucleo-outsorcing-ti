@@ -17,6 +17,8 @@ $where_clauses = [];
 $params = [];
 $types = "";
 
+$where_clauses[] = "emp.id_empresa = ?"; $types .= "i"; $params[] = (int) empresa_id_activa();
+
 if ($id_sucursal_usuario !== null) {
     $where_clauses[] = "emp.id_sucursal = ?"; $types .= "i"; $params[] = $id_sucursal_usuario;
 }
@@ -46,9 +48,10 @@ if (!empty($params)) { $stmt->bind_param($types, ...$params); }
 $stmt->execute();
 $resultado = $stmt->get_result();
 
-$sucursales = $conexion->query("SELECT * FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-$areas = $conexion->query("SELECT * FROM areas WHERE estado = 'Activo' ORDER BY nombre");
-$cargos = $conexion->query("SELECT * FROM cargos WHERE estado = 'Activo' ORDER BY nombre");
+$id_empresa_listas = (int) empresa_id_activa();
+$sucursales = $conexion->query("SELECT * FROM sucursales WHERE estado = 'Activo' AND id_empresa = $id_empresa_listas ORDER BY nombre");
+$areas = $conexion->query("SELECT * FROM areas WHERE estado = 'Activo' AND id_empresa = $id_empresa_listas ORDER BY nombre");
+$cargos = $conexion->query("SELECT * FROM cargos WHERE estado = 'Activo' AND id_empresa = $id_empresa_listas ORDER BY nombre");
 ?>
 
 <h1 class="h2 mb-3">Gestión de Empleados</h1>

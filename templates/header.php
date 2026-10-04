@@ -9,6 +9,17 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/modulos.php';
+
+$script_actual = basename($_SERVER['SCRIPT_NAME'] ?? '');
+if (empresa_id_activa() === null && !in_array($script_actual, ['plataforma.php', 'informes.php'], true)) {
+    if (es_operador()) {
+        header('Location: plataforma.php');
+        exit();
+    }
+    http_response_code(403);
+    exit('Tu usuario no está asignado a una empresa.');
+}
 
 if (!isset($_SESSION['configuracion'])) {
     $_SESSION['configuracion'] = [];
@@ -22,13 +33,26 @@ if (!isset($_SESSION['configuracion'])) {
 }
 
 $current_page = basename($_SERVER['PHP_SELF']);
+$rol = rol_actual();
+$paginas_empresa = [
+    'index.php', 'equipos.php', 'equipo_agregar.php', 'empleados.php', 'empleado_agregar.php',
+    'gestion_catalogos.php', 'tickets.php', 'cambiar_password.php', 'logout.php'
+];
+$paginas_operador = [
+    'backup.php', 'generar_backup.php', 'restaurar_backup.php', 'reset_system.php', 'procesar_reset.php',
+    'configuracion.php', 'gestion_usuarios.php', 'usuario_agregar.php', 'usuario_editar.php'
+];
+if (!in_array($current_page, $paginas_empresa, true) && !(es_operador() && in_array($current_page, $paginas_operador, true))) {
+    header('Location: index.php');
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Inventario TI</title>
+    <title>Núcleo de operaciones</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
@@ -43,13 +67,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <button class="btn text-white me-3 p-0 border-0" type="button" id="menu-toggle">
         <i class="bi bi-list fs-1"></i>
     </button>
-    <span class="fs-4 fw-bold">Inventario TI</span>
+    <span class="fs-4 fw-bold">Núcleo TI</span>
 </header>
 
 <div class="sidebar d-flex flex-column flex-shrink-0 p-3 text-white" id="sidebar">
     <a href="index.php" class="d-flex align-items-center mb-4 mb-md-0 me-md-auto text-white text-decoration-none">
         <i class="bi bi-layers-fill me-3" style="font-size: 2rem;"></i>
-        <span class="fs-4 fw-bold">Inventario TI</span>
+        <span class="fs-4 fw-bold">Núcleo TI</span>
     </a>
     <hr>
     
@@ -69,31 +93,21 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <i class="bi bi-people"></i> Empleados
             </a>
         </li>
-        <li>
-            <a href="asignaciones.php" class="nav-link <?php if(str_starts_with($current_page, 'asignacion')) echo 'active'; ?>">
-                <i class="bi bi-card-checklist"></i> Asignaciones
-            </a>
-        </li>
-        <li>
-            <a href="reparaciones.php" class="nav-link <?php if(str_starts_with($current_page, 'reparacion')) echo 'active'; ?>">
-                <i class="bi bi-tools"></i> Reparaciones
-            </a>
-        </li>
-        <li>
-            <a href="bajas.php" class="nav-link <?php if(str_starts_with($current_page, 'baja') || $current_page == 'equipo_dar_de_baja.php') echo 'active'; ?>">
-                <i class="bi bi-trash"></i> Bajas
-            </a>
-        </li>
+        <?php if ($rol !== 'empleado'): ?>
         <li>
             <a href="gestion_catalogos.php" class="nav-link <?php if($current_page == 'gestion_catalogos.php') echo 'active'; ?>">
                 <i class="bi bi-tags"></i> Catálogos
             </a>
         </li>
+        <?php endif; ?>
+
+        <li>
+            <a href="modulos.php" class="nav-link">
+                <i class="bi bi-grid"></i> Módulos
+            </a>
+        </li>
         
-        <?php 
-        $rol = isset($_SESSION['user_rol']) ? strtolower($_SESSION['user_rol']) : '';
-        if ($rol === 'administrador' || $rol === 'admin'): 
-        ?>
+        <?php if ($rol === 'operador'): ?>
         <hr class="my-2 border-white opacity-25">
         <div class="small text-uppercase text-white-50 mb-2 px-3">Administración</div>
         
@@ -141,3 +155,26 @@ $current_page = basename($_SERVER['PHP_SELF']);
 </div>
 
 <main class="main-content">
+<?php
+$modulo_nav = ($current_page === 'tickets.php') ? 'tickets' : 'inventario';
+?>
+<div class="module-switch" role="navigation" aria-label="Módulos">
+    <?php foreach (modulos_disponibles() as $modulo): ?>
+        <?php $activo = ($modulo['id'] === $modulo_nav) ? ' active' : ''; ?>
+        <a class="module-switch-link<?php echo $activo; ?>" href="<?php echo htmlspecialchars($modulo['href']); ?>">
+            <i class="bi <?php echo htmlspecialchars($modulo['icono']); ?>"></i>
+            <?php echo htmlspecialchars($modulo['titulo']); ?>
+        </a>
+    <?php endforeach; ?>
+    <a class="module-switch-link module-switch-all" href="modulos.php">Todos</a>
+</div>
+<?php if (!empty($_SESSION['empresa_nombre'])): ?>
+<div class="alert alert-primary d-flex justify-content-between align-items-center py-2">
+    <span>Empresa: <strong><?php echo htmlspecialchars($_SESSION['empresa_nombre']); ?></strong>
+        <span class="ms-2 small"><?php echo htmlspecialchars(etiqueta_rol($rol)); ?></span>
+    </span>
+    <?php if (es_operador()): ?>
+        <a href="empresa_salir.php" class="btn btn-sm btn-outline-primary">Volver a mis empresas</a>
+    <?php endif; ?>
+</div>
+<?php endif; ?>

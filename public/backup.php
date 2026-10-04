@@ -2,7 +2,7 @@
 require_once '../templates/header.php';
 
 // Seguridad: Solo administradores
-if (!isset($_SESSION['user_rol']) || (strtolower($_SESSION['user_rol']) !== 'administrador' && strtolower($_SESSION['user_rol']) !== 'admin')) {
+if (strtolower($_SESSION['user_rol'] ?? '') !== 'operador') {
     echo '<div class="alert alert-danger m-4">Acceso denegado. Permisos insuficientes.</div>';
     require_once '../templates/footer.php';
     exit();

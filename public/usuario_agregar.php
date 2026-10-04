@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../config/database.php';
 
 // Validar acceso (Solo administradores)
-if (!isset($_SESSION['user_rol']) || (strtolower($_SESSION['user_rol']) !== 'administrador' && strtolower($_SESSION['user_rol']) !== 'admin')) {
+if (strtolower($_SESSION['user_rol'] ?? '') !== 'operador') {
     header("Location: index.php");
     exit();
 }

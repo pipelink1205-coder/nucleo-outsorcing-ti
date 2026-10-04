@@ -2,7 +2,7 @@
 require_once '../templates/header.php';
 
 // Solo los administradores pueden acceder
-if ($_SESSION['user_rol'] !== 'Administrador') {
+if (strtolower($_SESSION['user_rol'] ?? '') !== 'operador') {
     echo "<div class='alert alert-danger'>Acceso denegado.</div>";
     require_once '../templates/footer.php';
     exit();

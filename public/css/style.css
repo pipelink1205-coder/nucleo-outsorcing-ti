@@ -57,6 +57,41 @@ body:not(.login-page) {
     transition: margin-left 0.3s ease-in-out;
 }
 
+.module-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.module-switch-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: var(--radius-pill);
+    background: white;
+    color: var(--text-main);
+    text-decoration: none;
+    border: 1px solid #dbe3ef;
+    font-weight: 600;
+}
+
+.module-switch-link:hover {
+    color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.module-switch-link.active {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: white;
+}
+
+.module-switch-all {
+    margin-left: auto;
+}
+
 /* =========================================
    3. ESTILOS VISUALES (Menú, Botones, Cards)
    ================================********* */

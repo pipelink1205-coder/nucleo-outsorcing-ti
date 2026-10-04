@@ -35,8 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tipo_mensaje = "danger";
     } else {
         // Verificar duplicados
-        $check = $conexion->prepare("SELECT id FROM equipos WHERE codigo_inventario = ?");
-        $check->bind_param("s", $codigo);
+        $id_empresa = (int) empresa_id_activa();
+        $check = $conexion->prepare("SELECT id FROM equipos WHERE codigo_inventario = ? AND id_empresa = ?");
+        $check->bind_param("si", $codigo, $id_empresa);
         $check->execute();
         $check->store_result();
 
@@ -46,13 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // INSERTAR DATOS COMPLETOS
             $sql = "INSERT INTO equipos (
-                        codigo_inventario, numero_serie, id_sucursal, id_tipo_equipo, id_marca, id_modelo, 
+                        id_empresa, codigo_inventario, numero_serie, id_sucursal, id_tipo_equipo, id_marca, id_modelo, 
                         fecha_adquisicion, tipo_adquisicion, caracteristicas, proveedor, observaciones, estado
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $conexion->prepare($sql);
-            $stmt->bind_param("ssiiiissssss", 
-                $codigo, $serie, $id_sucursal, $id_tipo, $id_marca, $id_modelo, 
+            $stmt->bind_param("issiiiissssss", 
+                $id_empresa, $codigo, $serie, $id_sucursal, $id_tipo, $id_marca, $id_modelo, 
                 $fecha, $tipo_adq, $caracteristicas, $proveedor, $observaciones, $estado
             );
 
@@ -73,9 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once '../templates/header.php';
 
 // Consultas para llenar los selectores (Modelos se carga vía AJAX ahora)
-$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-$tipos = $conexion->query("SELECT id, nombre FROM tipos_equipo WHERE estado = 'Activo' ORDER BY nombre");
-$marcas = $conexion->query("SELECT id, nombre FROM marcas WHERE estado = 'Activo' ORDER BY nombre");
+$id_empresa_listas = (int) empresa_id_activa();
+$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' AND id_empresa = $id_empresa_listas ORDER BY nombre");
+$tipos = $conexion->query("SELECT id, nombre FROM tipos_equipo WHERE estado = 'Activo' AND id_empresa = $id_empresa_listas ORDER BY nombre");
+$marcas = $conexion->query("SELECT id, nombre FROM marcas WHERE estado = 'Activo' AND id_empresa = $id_empresa_listas ORDER BY nombre");
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -153,8 +155,7 @@ $marcas = $conexion->query("SELECT id, nombre FROM marcas WHERE estado = 'Activo
                     <label class="form-label fw-bold">Tipo de Adquisición</label>
                     <select class="form-select" name="tipo_adquisicion">
                         <option value="Propio">Propio</option>
-                        <option value="Alquilado">Alquilado</option>
-                        <option value="Leasing">Leasing</option>
+                        <option value="Arrendado">Arrendado / alquiler / leasing</option>
                         <option value="Prestamo">Préstamo</option>
                     </select>
                 </div>

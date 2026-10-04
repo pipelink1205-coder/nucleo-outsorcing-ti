@@ -3,7 +3,7 @@ require_once '../config/database.php';
 session_start();
 
 // Seguridad
-if (!isset($_SESSION['user_rol']) || (strtolower($_SESSION['user_rol']) !== 'administrador' && strtolower($_SESSION['user_rol']) !== 'admin')) {
+if (strtolower($_SESSION['user_rol'] ?? '') !== 'operador') {
     header("Location: index.php");
     exit();
 }

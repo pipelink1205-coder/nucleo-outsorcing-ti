@@ -15,3 +15,8 @@ if ($conexion->connect_error) {
 
 // Establecer el charset a UTF-8
 $conexion->set_charset("utf8mb4");
+
+require_once __DIR__ . '/../includes/tenant.php';
+if (session_status() === PHP_SESSION_ACTIVE) {
+    tenant_bloquear_escritura();
+}

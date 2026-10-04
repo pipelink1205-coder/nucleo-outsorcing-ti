@@ -21,8 +21,9 @@ if (isset($_GET['action']) && isset($_GET['id']) && isset($_GET['type'])) {
 
     if (array_key_exists($type, $table_map)) {
         $table_name = $table_map[$type];
-        $stmt = $conexion->prepare("UPDATE {$table_name} SET estado = ? WHERE id = ?");
-        $stmt->bind_param("si", $estado, $id);
+        $id_empresa_update = (int) empresa_id_activa();
+        $stmt = $conexion->prepare("UPDATE {$table_name} SET estado = ? WHERE id = ? AND id_empresa = ?");
+        $stmt->bind_param("sii", $estado, $id, $id_empresa_update);
         $stmt->execute();
         header("Location: gestion_catalogos.php");
         exit();
@@ -35,18 +36,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['catalogo'])) {
         $catalogo = $_POST['catalogo'];
         $nombre = $_POST['nombre'];
+        $id_empresa_catalogo = (int) empresa_id_activa();
         switch ($catalogo) {
-            case 'tipo': $stmt = $conexion->prepare("INSERT INTO tipos_equipo (nombre) VALUES (?)"); $stmt->bind_param("s", $nombre); break;
-            case 'marca': $stmt = $conexion->prepare("INSERT INTO marcas (nombre) VALUES (?)"); $stmt->bind_param("s", $nombre); break;
-            case 'area': $stmt = $conexion->prepare("INSERT INTO areas (nombre) VALUES (?)"); $stmt->bind_param("s", $nombre); break;
-            case 'modelo': $id_marca = $_POST['id_marca']; $stmt = $conexion->prepare("INSERT INTO modelos (id_marca, nombre) VALUES (?, ?)"); $stmt->bind_param("is", $id_marca, $nombre); break;
-            case 'cargo': $id_area = $_POST['id_area']; $stmt = $conexion->prepare("INSERT INTO cargos (id_area, nombre) VALUES (?, ?)"); $stmt->bind_param("is", $id_area, $nombre); break;
+            case 'tipo': $stmt = $conexion->prepare("INSERT INTO tipos_equipo (nombre, id_empresa) VALUES (?, ?)"); $stmt->bind_param("si", $nombre, $id_empresa_catalogo); break;
+            case 'marca': $stmt = $conexion->prepare("INSERT INTO marcas (nombre, id_empresa) VALUES (?, ?)"); $stmt->bind_param("si", $nombre, $id_empresa_catalogo); break;
+            case 'area': $stmt = $conexion->prepare("INSERT INTO areas (nombre, id_empresa) VALUES (?, ?)"); $stmt->bind_param("si", $nombre, $id_empresa_catalogo); break;
+            case 'modelo': $id_marca = $_POST['id_marca']; $stmt = $conexion->prepare("INSERT INTO modelos (id_marca, nombre, id_empresa) VALUES (?, ?, ?)"); $stmt->bind_param("isi", $id_marca, $nombre, $id_empresa_catalogo); break;
+            case 'cargo': $id_area = $_POST['id_area']; $stmt = $conexion->prepare("INSERT INTO cargos (id_area, nombre, id_empresa) VALUES (?, ?, ?)"); $stmt->bind_param("isi", $id_area, $nombre, $id_empresa_catalogo); break;
         }
     } elseif (isset($_POST['catalogo_sucursal'])) {
         $nombre = $_POST['nombre_sucursal'];
         $direccion = $_POST['direccion_sucursal'];
-        $stmt = $conexion->prepare("INSERT INTO sucursales (nombre, direccion) VALUES (?, ?)");
-        $stmt->bind_param("ss", $nombre, $direccion);
+        $id_empresa_catalogo = (int) empresa_id_activa();
+        $stmt = $conexion->prepare("INSERT INTO sucursales (nombre, direccion, id_empresa) VALUES (?, ?, ?)");
+        $stmt->bind_param("ssi", $nombre, $direccion, $id_empresa_catalogo);
     }
     if ($stmt && $stmt->execute()) { echo "<div class='alert alert-success mt-3'>Elemento agregado correctamente.</div>"; } 
     elseif($stmt) { echo "<div class='alert alert-danger mt-3'>Error al agregar: " . $stmt->error . "</div>"; }
@@ -54,12 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // --- Cargar datos existentes para las tablas ---
-$sucursales = $conexion->query("SELECT * FROM sucursales ORDER BY nombre");
-$tipos = $conexion->query("SELECT * FROM tipos_equipo ORDER BY nombre");
-$marcas = $conexion->query("SELECT * FROM marcas ORDER BY nombre");
-$modelos = $conexion->query("SELECT m.id, m.nombre, m.estado, ma.nombre as marca_nombre FROM modelos m JOIN marcas ma ON m.id_marca = ma.id ORDER BY ma.nombre, m.nombre");
-$areas = $conexion->query("SELECT * FROM areas ORDER BY nombre");
-$cargos = $conexion->query("SELECT c.id, c.nombre, c.estado, a.nombre AS area_nombre FROM cargos c JOIN areas a ON c.id_area = a.id ORDER BY a.nombre, c.nombre");
+$id_empresa_listas = (int) empresa_id_activa();
+$sucursales = $conexion->query("SELECT * FROM sucursales WHERE id_empresa = $id_empresa_listas ORDER BY nombre");
+$tipos = $conexion->query("SELECT * FROM tipos_equipo WHERE id_empresa = $id_empresa_listas ORDER BY nombre");
+$marcas = $conexion->query("SELECT * FROM marcas WHERE id_empresa = $id_empresa_listas ORDER BY nombre");
+$modelos = $conexion->query("SELECT m.id, m.nombre, m.estado, ma.nombre as marca_nombre FROM modelos m JOIN marcas ma ON m.id_marca = ma.id WHERE m.id_empresa = $id_empresa_listas ORDER BY ma.nombre, m.nombre");
+$areas = $conexion->query("SELECT * FROM areas WHERE id_empresa = $id_empresa_listas ORDER BY nombre");
+$cargos = $conexion->query("SELECT c.id, c.nombre, c.estado, a.nombre AS area_nombre FROM cargos c JOIN areas a ON c.id_area = a.id WHERE c.id_empresa = $id_empresa_listas ORDER BY a.nombre, c.nombre");
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">

@@ -213,8 +213,7 @@ $modelos = $stmt_modelos->get_result();
                     <label class="form-label fw-bold">Tipo de Adquisición</label>
                     <select class="form-select" name="tipo_adquisicion">
                         <option value="Propio" <?php echo ($equipo['tipo_adquisicion'] == 'Propio') ? 'selected' : ''; ?>>Propio</option>
-                        <option value="Alquilado" <?php echo ($equipo['tipo_adquisicion'] == 'Alquilado') ? 'selected' : ''; ?>>Alquilado</option>
-                        <option value="Leasing" <?php echo ($equipo['tipo_adquisicion'] == 'Leasing') ? 'selected' : ''; ?>>Leasing</option>
+                        <option value="Arrendado" <?php echo ($equipo['tipo_adquisicion'] == 'Arrendado') ? 'selected' : ''; ?>>Arrendado / alquiler / leasing</option>
                         <option value="Prestamo" <?php echo ($equipo['tipo_adquisicion'] == 'Prestamo') ? 'selected' : ''; ?>>Préstamo</option>
                     </select>
                 </div>

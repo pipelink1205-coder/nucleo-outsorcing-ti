@@ -29,8 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tipo_mensaje = "danger";
     } else {
         // Verificar duplicado
-        $check = $conexion->prepare("SELECT id FROM empleados WHERE dni = ?");
-        $check->bind_param("s", $dni);
+        $id_empresa = (int) empresa_id_activa();
+        $check = $conexion->prepare("SELECT id FROM empleados WHERE dni = ? AND id_empresa = ?");
+        $check->bind_param("si", $dni, $id_empresa);
         $check->execute();
         $check->store_result();
 
@@ -39,9 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $tipo_mensaje = "warning";
         } else {
             // Insertar
-            $sql = "INSERT INTO empleados (id_sucursal, dni, nombres, apellidos, id_area, id_cargo, estado) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO empleados (id_empresa, id_sucursal, dni, nombres, apellidos, id_area, id_cargo, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             $stmt = $conexion->prepare($sql);
-            $stmt->bind_param("isssiis", $id_sucursal, $dni, $nombres, $apellidos, $id_area, $id_cargo, $estado);
+            $stmt->bind_param("iisssiis", $id_empresa, $id_sucursal, $dni, $nombres, $apellidos, $id_area, $id_cargo, $estado);
 
             if ($stmt->execute()) {
                 header("Location: empleados.php?msg=guardado");
@@ -59,8 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once '../templates/header.php';
 
 // Cargar listas iniciales
-$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-$areas = $conexion->query("SELECT id, nombre FROM areas WHERE estado = 'Activo' ORDER BY nombre");
+$id_empresa_listas = (int) empresa_id_activa();
+$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' AND id_empresa = $id_empresa_listas ORDER BY nombre");
+$areas = $conexion->query("SELECT id, nombre FROM areas WHERE estado = 'Activo' AND id_empresa = $id_empresa_listas ORDER BY nombre");
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">

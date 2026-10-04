@@ -3,11 +3,12 @@ require_once '../templates/header.php';
 
 // 1. OBTENER ID SUCURSAL DE FORMA SEGURA
 $id_sucursal_usuario = $_SESSION['user_sucursal_id'] ?? null;
+$id_empresa = (int) empresa_id_activa();
 
 // 2. CONSULTAS PARA LAS TARJETAS (KPIs)
-$where_sucursal = "";
+$where_sucursal = "WHERE id_empresa = $id_empresa";
 if ($id_sucursal_usuario !== null) {
-    $where_sucursal = "WHERE id_sucursal = $id_sucursal_usuario";
+    $where_sucursal .= " AND id_sucursal = $id_sucursal_usuario";
 }
 
 // A. Total de Equipos
@@ -16,13 +17,13 @@ $res_total = $conexion->query($sql_total);
 $total_equipos = $res_total->fetch_assoc()['total'] ?? 0;
 
 // B. Equipos Asignados
-$where_asignados = ($id_sucursal_usuario !== null) ? "AND id_sucursal = $id_sucursal_usuario" : "";
+$where_asignados = "AND id_empresa = $id_empresa" . (($id_sucursal_usuario !== null) ? " AND id_sucursal = $id_sucursal_usuario" : "");
 $sql_asignados = "SELECT COUNT(*) as total FROM equipos WHERE estado = 'Asignado' $where_asignados";
 $res_asignados = $conexion->query($sql_asignados);
 $total_asignados = $res_asignados->fetch_assoc()['total'] ?? 0;
 
 // C. Equipos Disponibles
-$where_disponibles = ($id_sucursal_usuario !== null) ? "AND id_sucursal = $id_sucursal_usuario" : "";
+$where_disponibles = "AND id_empresa = $id_empresa" . (($id_sucursal_usuario !== null) ? " AND id_sucursal = $id_sucursal_usuario" : "");
 $sql_disponibles = "SELECT COUNT(*) as total FROM equipos WHERE estado = 'Disponible' $where_disponibles";
 $res_disponibles = $conexion->query($sql_disponibles);
 $total_disponibles = $res_disponibles->fetch_assoc()['total'] ?? 0;
@@ -31,7 +32,7 @@ $total_disponibles = $res_disponibles->fetch_assoc()['total'] ?? 0;
 $sql_chart1 = "SELECT t.nombre, COUNT(e.id) as cantidad 
                FROM equipos e 
                JOIN tipos_equipo t ON e.id_tipo_equipo = t.id 
-               $where_sucursal
+               WHERE e.id_empresa = $id_empresa" . ($id_sucursal_usuario !== null ? " AND e.id_sucursal = $id_sucursal_usuario" : "") . "
                GROUP BY t.nombre";
 $res_chart1 = $conexion->query($sql_chart1);
 
@@ -44,7 +45,7 @@ while ($row = $res_chart1->fetch_assoc()) {
 
 // 4. CONSULTA PARA EL GRÁFICO 2 (Equipos y Empleados por Sucursal)
 // Si el usuario es admin, ve todas. Si es de sucursal, solo ve la suya.
-$filtro_sucursal_sql = ($id_sucursal_usuario !== null) ? "AND s.id = $id_sucursal_usuario" : "";
+$filtro_sucursal_sql = "AND s.id_empresa = $id_empresa" . (($id_sucursal_usuario !== null) ? " AND s.id = $id_sucursal_usuario" : "");
 
 $sql_chart2 = "SELECT 
                 s.nombre as sucursal,
@@ -66,7 +67,7 @@ while ($row = $res_chart2->fetch_assoc()) {
 }
 ?>
 
-<h1 class="h2 mb-4">Dashboard</h1>
+<h1 class="h2 mb-4">Panel de control</h1>
 
 <div class="row g-4 mb-4">
     <div class="col-md-4">
