@@ -22,7 +22,7 @@ if (isset($_GET['status'])) {
                         icon: "success",
                         title: "¡Respaldo Generado!",
                         text: "La copia de seguridad se ha descargado correctamente.",
-                        confirmButtonColor: "#2563eb"
+                        confirmButtonColor: "#178f82"
                     });
                 });
               </script>';
@@ -33,7 +33,7 @@ if (isset($_GET['status'])) {
                         icon: "success",
                         title: "¡Sistema Restaurado!",
                         text: "La base de datos ha sido actualizada con éxito.",
-                        confirmButtonColor: "#2563eb"
+                        confirmButtonColor: "#178f82"
                     });
                 });
               </script>';

@@ -7,3 +7,6 @@ Thumbs.db
 # Si tienes carpetas de imágenes subidas por usuarios que no quieres en el repo:
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# Respaldos locales de migración (contienen datos privados)
+/.local/

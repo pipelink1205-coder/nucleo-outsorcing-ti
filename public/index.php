@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     label: 'Cantidad',
                     data: <?php echo json_encode($tipos_data); ?>,
                     backgroundColor: [
-                        '#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#6366f1'
+                        '#178f82', '#ef4444', '#f59e0b', '#2ec4a0', '#0b4f48', '#5ee69a'
                     ],
                     borderWidth: 2,
                     hoverOffset: 4
@@ -197,7 +197,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     {
                         label: 'Equipos',
                         data: <?php echo json_encode($data_equipos); ?>,
-                        backgroundColor: '#3b82f6', // Azul
+                        backgroundColor: '#178f82',
                         borderRadius: 4
                     },
                     {

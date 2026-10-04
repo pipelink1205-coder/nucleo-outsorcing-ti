@@ -4,7 +4,7 @@ require_once '../config/database.php';
 if (isset($_POST['id_marca'])) {
     $id_marca = (int)$_POST['id_marca'];
 
-    $stmt = $conexion->prepare("SELECT id, nombre FROM modelos WHERE id_marca = ? AND estado = 'Activo' ORDER BY nombre");
+    $stmt = $conexion->prepare("SELECT id, nombre FROM modelos WHERE id_empresa = " . (int) empresa_id_activa() . " AND id_marca = ? AND estado = 'Activo' ORDER BY nombre");
     $stmt->bind_param("i", $id_marca);
     $stmt->execute();
     $resultado = $stmt->get_result();

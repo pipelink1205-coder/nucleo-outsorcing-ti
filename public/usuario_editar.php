@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../config/database.php';
 
 // Validar acceso (Solo administradores)
-if (strtolower($_SESSION['user_rol'] ?? '') !== 'operador') {
+if (!in_array(rol_actual(), ['operador','administrador'], true)) {
     header("Location: index.php");
     exit();
 }
@@ -30,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_sucursal = !empty($_POST['id_sucursal']) ? $_POST['id_sucursal'] : null;
     $id_rol = $_POST['id_rol'];
     $activo = $_POST['activo'];
+    $id_empleado = !empty($_POST['id_empleado']) ? (int) $_POST['id_empleado'] : null;
 
     if (empty($nombre) || empty($email) || empty($id_rol)) {
         $mensaje = "Por favor complete los campos obligatorios.";
@@ -64,6 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Error al actualizar usuario: " . $stmt->error);
                 }
                 $stmt->close();
+
+                $vinculo = $conexion->prepare('UPDATE usuarios SET id_empleado=? WHERE id=?');
+                $vinculo->bind_param('ii', $id_empleado, $id_usuario);
+                $vinculo->execute();
 
                 // B. Actualizar Rol (tabla usuario_roles)
                 // Primero verificamos si ya tiene rol asignado
@@ -121,8 +126,9 @@ if (!$usuario) {
 require_once '../templates/header.php';
 
 // Cargar listas
-$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-$roles = $conexion->query("SELECT id, nombre_rol FROM roles ORDER BY nombre_rol");
+$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
+$roles = $conexion->query("SELECT id, nombre_rol FROM roles WHERE nombre_rol IN ('Administrador','Auditor','Empleado') ORDER BY nombre_rol");
+$empleados_vinculo = $conexion->query('SELECT id,nombres,apellidos FROM empleados WHERE id_empresa=' . (int) empresa_id_activa());
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -145,6 +151,10 @@ $roles = $conexion->query("SELECT id, nombre_rol FROM roles ORDER BY nombre_rol"
     </div>
     <div class="card-body p-4">
         <form action="usuario_editar.php?id=<?php echo $id_usuario; ?>" method="POST" autocomplete="off">
+            <label class="form-label">Empleado asociado (necesario para solicitar soporte como empleado)</label>
+            <select class="form-select mb-3" name="id_empleado"><option value="">Sin vínculo</option>
+                <?php while ($emp = $empleados_vinculo->fetch_assoc()): ?><option value="<?php echo (int) $emp['id']; ?>" <?php echo (int) ($usuario['id_empleado'] ?? 0) === (int) $emp['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($emp['nombres'] . ' ' . $emp['apellidos']); ?></option><?php endwhile; ?>
+            </select>
             <div class="row g-3">
                 
                 <div class="col-md-6">

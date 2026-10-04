@@ -6,7 +6,7 @@ if (isset($_POST['id_area'])) {
     $id_area = (int)$_POST['id_area'];
 
     // Consultar cargos activos de esa área
-    $stmt = $conexion->prepare("SELECT id, nombre FROM cargos WHERE id_area = ? AND estado = 'Activo' ORDER BY nombre");
+    $stmt = $conexion->prepare("SELECT id, nombre FROM cargos WHERE id_empresa = " . (int) empresa_id_activa() . " AND id_area = ? AND estado = 'Activo' ORDER BY nombre");
     $stmt->bind_param("i", $id_area);
     $stmt->execute();
     $resultado = $stmt->get_result();

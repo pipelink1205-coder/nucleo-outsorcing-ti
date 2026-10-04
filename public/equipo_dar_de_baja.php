@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt_eq->execute();
 
         // 2. Insertar registro en la tabla 'bajas'
-        $stmt_baja = $conexion->prepare("INSERT INTO bajas (id_equipo, fecha_baja, motivo, observaciones, acta_baja_path) VALUES (?, ?, ?, ?, ?)");
+        $stmt_baja = $conexion->prepare("INSERT INTO bajas (id_empresa, id_equipo, fecha_baja, motivo, observaciones, acta_baja_path) VALUES (" . (int) empresa_id_activa() . ", ?, ?, ?, ?, ?)");
         $stmt_baja->bind_param("issss", $id_equipo, $fecha_baja, $motivo, $observaciones, $acta_path);
         $stmt_baja->execute();
 

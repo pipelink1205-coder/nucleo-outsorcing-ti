@@ -5,29 +5,32 @@ if (session_status() === PHP_SESSION_NONE) {
 $current_page = basename($_SERVER['PHP_SELF']);
 $portal_rol = $_SESSION['portal_rol'] ?? '';
 $admin_total = ($portal_rol === 'operador') || ($portal_rol === '' && (int) ($_SESSION['id_rol'] ?? 0) === 1);
-$puede_crear = $admin_total || $portal_rol === 'administrador' || ($portal_rol === '' && (int) ($_SESSION['id_rol'] ?? 0) === 1);
+$puede_crear = $admin_total || in_array($portal_rol, ['administrador','empleado'], true) || ($portal_rol === '' && (int) ($_SESSION['id_rol'] ?? 0) === 1);
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Gestión Integral de Tickets</title>
+    <title>Tickets | Smart Tech</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/inventario_ti/css/identidad.css?v=<?php echo time(); ?>">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        /* --- ESTILOS GLOBALES --- */
         :root {
-            --sidebar-gradient: linear-gradient(180deg, #000428 0%, #004e92 100%);
-            --btn-gradient: linear-gradient(to right, #0062cc, #004e92);
-            --btn-hover: linear-gradient(to right, #004e92, #003366);
+            --sidebar-gradient: linear-gradient(180deg, #0b3d36 0%, #0a1c1a 55%, #0a0f14 100%);
+            --btn-gradient: linear-gradient(135deg, #178f82 0%, #2ec4a0 52%, #5ee69a 100%);
+            --btn-hover: linear-gradient(135deg, #126b61 0%, #178f82 100%);
         }
 
         body {
-            overflow-x: hidden; /* Evita scroll horizontal al animar el menú */
-            background-color: #f0f2f5;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+            background-color: #f8fafb;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
         }
 
         /* --- WRAPPER PRINCIPAL --- */
@@ -110,7 +113,7 @@ $puede_crear = $admin_total || $portal_rol === 'administrador' || ($portal_rol =
             background-color: rgba(255,255,255,0.15);
             color: #fff;
             font-weight: 600;
-            border-left: 4px solid #00d2ff;
+            border-left: 4px solid #5ee69a;
         }
 
         /* --- CONTENIDO --- */
@@ -130,11 +133,14 @@ $puede_crear = $admin_total || $portal_rol === 'administrador' || ($portal_rol =
         }
 
         /* --- BOTONES Y TARJETAS --- */
-        .btn-primary { background: var(--btn-gradient); border: none; box-shadow: 0 4px 6px rgba(0, 78, 146, 0.2); }
-        .btn-primary:hover { background: linear-gradient(to right, #004e92, #003366); transform: translateY(-1px); }
-        .card { border: none; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .btn-primary { background: var(--btn-gradient); border: none; color: #fff; box-shadow: 0 4px 14px rgba(23, 143, 130, .22); }
+        .btn-primary:hover { background: var(--btn-hover); color: #fff; transform: translateY(-1px); }
+        .card { border: none; border-radius: 16px; box-shadow: 0 8px 24px rgba(11, 61, 54, .06); }
         .card-header:not(.bg-warning):not(.bg-danger):not(.bg-success):not(.bg-primary) {
-            background-color: #fff; border-bottom: 1px solid #eee; font-weight: bold; color: #004e92; padding: 1rem;
+            background-color: #fff; border-bottom: 1px solid #e7f6f2; font-weight: 700; color: #0b3d36; padding: 1rem;
+        }
+        @media (max-width: 768px) {
+            .container-fluid.main-content { padding: 1rem !important; }
         }
     </style>
 </head>
@@ -144,9 +150,15 @@ $puede_crear = $admin_total || $portal_rol === 'administrador' || ($portal_rol =
 
         <div id="sidebar-wrapper">
             <div class="sidebar-heading">
-                <i class="bi bi-ticket-perforated-fill text-primary"></i> Sistema Gestión<br>Integral de Tickets
+                <a href="/inventario_ti/modulos.php" class="brand-lockup text-white text-decoration-none justify-content-center">
+                    <img src="/inventario_ti/img/smarttech-logo.png" alt="Smart Tech Security" width="46" height="46">
+                    <span class="text-start">
+                        <span class="brand-name">Smart Tech</span>
+                        <span class="brand-tag">Tickets</span>
+                    </span>
+                </a>
                 <?php if (!empty($_SESSION['portal_empresa_nombre'])): ?>
-                    <div class="small text-white-50 mt-2"><?php echo htmlspecialchars($_SESSION['portal_empresa_nombre']); ?></div>
+                    <div class="small mt-2" style="color:#5ee69a;"><?php echo htmlspecialchars($_SESSION['portal_empresa_nombre']); ?></div>
                 <?php endif; ?>
             </div>
             
@@ -164,35 +176,23 @@ $puede_crear = $admin_total || $portal_rol === 'administrador' || ($portal_rol =
                     </a>
                 <?php endif; ?>
 
-                <?php if ($admin_total): ?>
-                    <div class="sidebar-heading fs-6 text-uppercase text-white-50 mt-3 mb-1 border-0 text-start ps-4" style="font-size: 0.75rem !important; letter-spacing: 1px; background: transparent;">Administración</div>
-                    
-                    <a href="gestionar_clientes.php" class="list-group-item list-group-item-action <?php echo (in_array($current_page, ['gestionar_clientes.php', 'crear_cliente.php', 'editar_cliente.php'])) ? 'active' : ''; ?>">
-                        <i class="bi bi-people-fill me-2"></i> Clientes
-                    </a>
-                    <?php if ($admin_total): ?>
-                    <a href="gestionar_usuarios.php" class="list-group-item list-group-item-action <?php echo (in_array($current_page, ['gestionar_usuarios.php', 'crear_usuario.php', 'editar_usuario.php'])) ? 'active' : ''; ?>">
-                        <i class="bi bi-person-badge-fill me-2"></i> Usuarios
-                    </a>
-                    <a href="gestionar_tipos_caso.php" class="list-group-item list-group-item-action <?php echo ($current_page == 'gestionar_tipos_caso.php') ? 'active' : ''; ?>">
-                        <i class="bi bi-tags-fill me-2"></i> Tipos de Caso
-                    </a>
-                    <a href="copia_seguridad.php" class="list-group-item list-group-item-action <?php echo ($current_page == 'copia_seguridad.php') ? 'active' : ''; ?>">
-                        <i class="bi bi-database-fill-gear me-2"></i> Copia de Seguridad
-                    </a>
-                    <a href="reset_sistema.php" class="list-group-item list-group-item-action text-danger fw-bold <?php echo ($current_page == 'reset_sistema.php') ? 'active bg-danger border-danger' : ''; ?>">
-                        <i class="bi bi-exclamation-octagon-fill me-2"></i> Resetear Sistema
-                    </a>
-                    <?php endif; ?>
-                <?php endif; ?>
-            </div>
+                <?php if ($puede_crear && $portal_rol !== 'empleado'): ?>
+                    <a href="../../public/gestion_usuarios.php" class="list-group-item list-group-item-action"><i class="bi bi-person-badge-fill me-2"></i> Usuarios compartidos</a>
+                    <a href="../../public/gestion_catalogos.php" class="list-group-item list-group-item-action"><i class="bi bi-building me-2"></i> Organización compartida</a>
+                <?php endif; ?>            </div>
         </div>
         <div id="page-content-wrapper">
             <nav class="navbar navbar-expand-lg navbar-light bg-white py-3">
                 <div class="container-fluid">
-                    <button class="btn btn-outline-secondary border-0" id="menu-toggle">
+                    <button class="btn btn-outline-secondary border-0" id="menu-toggle" aria-label="Abrir menú">
                         <i class="bi bi-list fs-4"></i>
                     </button>
+                    <?php if (!empty($_SESSION['portal_empresa_nombre'])): ?>
+                        <span class="ms-2 d-none d-md-inline">
+                            <span class="empresa-kicker">Empresa activa</span>
+                            <strong><?php echo htmlspecialchars($_SESSION['portal_empresa_nombre']); ?></strong>
+                        </span>
+                    <?php endif; ?>
                     
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
                         <span class="navbar-toggler-icon"></span>
@@ -208,7 +208,7 @@ $puede_crear = $admin_total || $portal_rol === 'administrador' || ($portal_rol =
                                     <?php echo htmlspecialchars($_SESSION['nombre_completo'] ?? 'Usuario'); ?>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="navbarDropdown">
-                                    <li><a class="dropdown-item py-2" href="perfil.php"><i class="bi bi-key me-2 text-primary"></i> Cambiar Contraseña</a></li>
+                                    <li><a class="dropdown-item py-2" href="../../public/cambiar_password.php"><i class="bi bi-key me-2 text-primary"></i> Cambiar Contraseña</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item py-2" href="/inventario_ti/modulos.php"><i class="bi bi-grid me-2 text-primary"></i> Volver a módulos</a></li>
                                     <li><a class="dropdown-item py-2 text-danger" href="/inventario_ti/logout.php"><i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión</a></li>
@@ -219,6 +219,24 @@ $puede_crear = $admin_total || $portal_rol === 'administrador' || ($portal_rol =
                 </div>
             </nav>
 
+            <div class="container-fluid pt-3 px-3 px-md-4">
+                <div class="module-switch" role="navigation" aria-label="Módulos">
+                    <a class="module-switch-link" href="/inventario_ti/index.php"><i class="bi bi-laptop"></i> Inventario</a>
+                    <a class="module-switch-link active" href="index.php"><i class="bi bi-ticket-perforated"></i> Tickets</a>
+                    <?php if ($portal_rol === 'operador'): ?>
+                        <a class="module-switch-link" href="/inventario_ti/informes.php"><i class="bi bi-file-earmark-text"></i> Informes</a>
+                    <?php endif; ?>
+                    <a class="module-switch-link module-switch-all" href="/inventario_ti/modulos.php">Todos</a>
+                </div>
+                <?php if (!empty($_SESSION['portal_empresa_nombre'])): ?>
+                <div class="empresa-bar d-md-none">
+                    <div>
+                        <span class="empresa-kicker">Empresa activa</span>
+                        <strong><?php echo htmlspecialchars($_SESSION['portal_empresa_nombre']); ?></strong>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
             <div class="container-fluid main-content">
                 <script>
                     document.addEventListener("DOMContentLoaded", function() {

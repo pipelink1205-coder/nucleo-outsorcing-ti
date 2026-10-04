@@ -126,16 +126,23 @@ $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'htt
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Núcleo de operaciones</title>
+    <title>Empresas | Smart Tech</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/identidad.css?v=<?php echo time(); ?>">
 </head>
-<body class="bg-light">
-<div class="bg-primary text-white py-4 mb-4">
-    <div class="container d-flex justify-content-between align-items-center">
-        <div>
-            <div class="text-white-50 small">Outsourcing de TI</div>
-            <h1 class="h3 mb-0">Núcleo de operaciones</h1>
+<body>
+<div class="app-hero py-4 mb-4">
+    <div class="container d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <div class="d-flex align-items-center gap-3">
+            <img src="img/smarttech-logo.png" alt="" width="48" height="48" class="bg-white rounded-3 p-1">
+            <div>
+                <div class="text-white-50 small">Smart Tech Security</div>
+                <h1 class="h3 mb-0">Empresas en operación</h1>
+            </div>
         </div>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-light btn-sm" href="informes.php">Informes de servicio</a>

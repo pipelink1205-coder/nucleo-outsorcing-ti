@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // 1. Insertar el nuevo registro en la tabla de asignaciones
-        $sql_insert = "INSERT INTO asignaciones (id_equipo, id_empleado, fecha_entrega, observaciones_entrega, estado_asignacion) VALUES (?, ?, ?, ?, 'Activa')";
+        $sql_insert = "INSERT INTO asignaciones (id_empresa, id_equipo, id_empleado, fecha_entrega, observaciones_entrega, estado_asignacion) VALUES (" . (int) empresa_id_activa() . ", ?, ?, ?, ?, 'Activa')";
         $stmt_insert = $conexion->prepare($sql_insert);
         $stmt_insert->bind_param("iiss", $id_equipo, $id_empleado, $fecha_entrega, $observaciones_entrega);
         $stmt_insert->execute();

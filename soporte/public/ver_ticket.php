@@ -8,10 +8,14 @@ if (!$id_ticket) {
     exit();
 }
 
-// --- LÓGICA PARA PROCESAR TODAS LAS ACCIONES DEL FORMULARIO ---
+try { $ticket_autorizado = soporte_ticket($pdo, $soporte_ctx, $id_ticket); }
+catch (Throwable $e) { nucleo_error($e); }
+
+// Autorizar antes de cualquier lectura relacionada o escritura.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
     $pdo->beginTransaction();
     try {
+        $ultimo_comentario = (int) $pdo->query('SELECT COALESCE(MAX(id_comentario),0) FROM comentarios')->fetchColumn();
         $stmt_agente = $pdo->prepare("SELECT id_agente, u.nombre_completo FROM Agentes a JOIN Usuarios u ON a.id_usuario = u.id_usuario WHERE a.id_usuario = ?");
         $stmt_agente->execute([$_SESSION['id_usuario']]);
         $agente_actual = $stmt_agente->fetch();
@@ -63,6 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
         }
 
         if (isset($_POST['asignar_ticket']) && $_SESSION['id_rol'] == 1) {
+            $validar = $pdo->prepare('SELECT u.id_usuario_nucleo FROM agentes a JOIN usuarios u ON u.id_usuario=a.id_usuario WHERE a.id_agente=?');
+            $validar->execute([(int) $_POST['id_nuevo_agente']]);
+            $usuario_asignado = (int) $validar->fetchColumn();
+            $q = $core->prepare("SELECT u.id FROM usuarios u JOIN usuario_roles ur ON ur.id_usuario=u.id JOIN roles r ON r.id=ur.id_rol WHERE u.id=? AND u.activo=1 AND (u.id_empresa=? OR (u.id_empresa IS NULL AND r.nombre_rol='Operador'))");
+            $q->execute([$usuario_asignado, $soporte_ctx['empresa']]);
+            if (!$q->fetchColumn()) { throw new RuntimeException('Agente no autorizado', 403); }
             $id_nuevo_agente = $_POST['id_nuevo_agente'];
             $stmt_agente_anterior = $pdo->prepare("SELECT u.nombre_completo FROM Tickets t LEFT JOIN Agentes a ON t.id_agente_asignado = a.id_agente LEFT JOIN Usuarios u ON a.id_usuario = u.id_usuario WHERE t.id_ticket = ?");
             $stmt_agente_anterior->execute([$id_ticket]);
@@ -77,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
         }
 
         if (isset($_POST['guardar_costo']) && $_SESSION['id_rol'] == 1) {
+            if ($ticket_autorizado['estado_facturacion'] === 'Pagado') { throw new RuntimeException('Los costos pagados no pueden modificarse', 403); }
             $nuevo_costo = empty($_POST['costo']) ? null : (float)$_POST['costo'];
             $nueva_moneda = htmlspecialchars($_POST['moneda']);
             $nuevo_estado_facturacion = htmlspecialchars($_POST['estado_facturacion']);
@@ -112,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
         }
 
         if ($accion_realizada) {
+            $pdo->prepare('UPDATE comentarios SET id_usuario_nucleo=? WHERE id_ticket=? AND id_comentario>? AND id_autor=? AND tipo_autor=\'Agente\'')->execute([$soporte_ctx['usuario'], $id_ticket, $ultimo_comentario, $id_agente_autor]);
             $pdo->commit();
             header("Location: ver_ticket.php?id=$id_ticket&status=success");
             exit();
@@ -121,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
 
     } catch (Exception $e) {
         $pdo->rollBack();
+        if (in_array($e->getCode(), [403,404,422], true)) { nucleo_error($e); }
         header("Location: ver_ticket.php?id=$id_ticket&status=error&msg=" . urlencode($e->getMessage()));
         exit();
     }
@@ -133,10 +146,11 @@ $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$ticket) { header('Location: index.php'); exit(); }
 
-$agentes_disponibles = $pdo->query("SELECT a.id_agente, u.nombre_completo FROM Agentes a JOIN Usuarios u ON a.id_usuario = u.id_usuario WHERE u.activo = 1 ORDER BY u.nombre_completo")->fetchAll(PDO::FETCH_ASSOC);
+$agentes_disponibles = soporte_agentes($core, $pdo, $soporte_ctx);
 $stmt_comentarios = $pdo->prepare("SELECT com.*, CASE WHEN com.tipo_autor = 'Cliente' THEN cli.nombre WHEN com.tipo_autor = 'Agente' THEN usu.nombre_completo ELSE 'Desconocido' END AS nombre_autor FROM Comentarios AS com LEFT JOIN Clientes AS cli ON com.tipo_autor = 'Cliente' AND com.id_autor = cli.id_cliente LEFT JOIN Agentes AS ag ON com.tipo_autor = 'Agente' AND com.id_autor = ag.id_agente LEFT JOIN Usuarios AS usu ON ag.id_usuario = usu.id_usuario WHERE com.id_ticket = ? ORDER BY com.fecha_creacion ASC");
 $stmt_comentarios->execute([$id_ticket]);
 $comentarios = $stmt_comentarios->fetchAll(PDO::FETCH_ASSOC);
+$comentarios = array_filter($comentarios, function ($c) use ($soporte_ctx) { return !$c['es_privado'] || in_array($soporte_ctx['rol'], ['operador', 'administrador', 'auditor'], true); });
 $stmt_adjuntos = $pdo->prepare("SELECT * FROM Archivos_Adjuntos WHERE id_ticket = ? AND id_comentario IS NOT NULL");
 $stmt_adjuntos->execute([$id_ticket]);
 $adjuntos_con_comentario = $stmt_adjuntos->fetchAll(PDO::FETCH_ASSOC);
@@ -165,6 +179,12 @@ $is_ticket_finalizado = in_array($ticket['estado'], ['Resuelto', 'Cerrado', 'Anu
             <div class="card-header fw-bold">Detalles del Ticket</div>
             <div class="card-body">
                 <p><strong>Cliente:</strong> <?php echo htmlspecialchars($ticket['nombre_cliente']); ?></p>
+                <?php foreach (['id_empresa_portal' => ['empresas','Empresa'], 'id_sucursal' => ['sucursales','Sucursal'], 'id_solicitante' => ['empleados','Solicitante'], 'id_equipo' => ['equipos','Equipo']] as $columna => [$tabla,$titulo]): ?>
+                <p><strong><?php echo $titulo; ?>:</strong> <?php
+                    if (empty($ticket[$columna])) { echo $columna === 'id_equipo' ? 'Sin equipo' : 'Pendiente de clasificación'; }
+                    else { $q = $core->prepare("SELECT * FROM `$tabla` WHERE id=?"); $q->execute([$ticket[$columna]]); $r = $q->fetch(); echo htmlspecialchars($r['nombre'] ?? $r['codigo_inventario'] ?? (($r['nombres'] ?? '') . ' ' . ($r['apellidos'] ?? ''))); }
+                ?></p>
+                <?php endforeach; ?>
                 <p><strong>Agente Asignado:</strong> <?php echo htmlspecialchars($ticket['nombre_agente'] ?? 'Sin asignar'); ?></p>
                 <p><strong>Tipo de Caso:</strong> <?php echo htmlspecialchars($ticket['nombre_tipo'] ?? 'No especificado'); ?></p>
                 <p><strong>Estado:</strong> <span class="badge bg-<?php echo $status_classes[$ticket['estado']] ?? 'light'; ?> fs-6"><?php echo htmlspecialchars($ticket['estado']); ?></span></p>
@@ -173,7 +193,7 @@ $is_ticket_finalizado = in_array($ticket['estado'], ['Resuelto', 'Cerrado', 'Anu
             </div>
         </div>
         
-        <?php if (!$is_ticket_finalizado): ?>
+        <?php if (!$is_ticket_finalizado && $_SESSION['id_rol'] == 1): ?>
         <div class="card mb-4">
             <div class="card-header fw-bold">Acciones</div>
             <div class="card-body">
@@ -269,7 +289,7 @@ $is_ticket_finalizado = in_array($ticket['estado'], ['Resuelto', 'Cerrado', 'Anu
                             <?php if (isset($adjuntos_por_comentario[$comentario['id_comentario']])): ?>
                                 <div class="mt-2 pt-2 border-top">
                                     <?php foreach ($adjuntos_por_comentario[$comentario['id_comentario']] as $adjunto_comentario): ?>
-                                        <a href="../<?php echo htmlspecialchars($adjunto_comentario['ruta_archivo']); ?>" download="<?php echo htmlspecialchars($adjunto_comentario['nombre_original']); ?>" class="d-block small"><i class="bi bi-paperclip"></i> <?php echo htmlspecialchars($adjunto_comentario['nombre_original']); ?></a>
+                                        <a href="descargar_adjunto.php?id=<?php echo (int) $adjunto_comentario['id_adjunto']; ?>" class="d-block small"><i class="bi bi-paperclip"></i> <?php echo htmlspecialchars($adjunto_comentario['nombre_original']); ?></a>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
@@ -278,13 +298,13 @@ $is_ticket_finalizado = in_array($ticket['estado'], ['Resuelto', 'Cerrado', 'Anu
                     <?php endforeach; ?>
                 <?php endif; ?>
                 
-                <?php if (!$is_ticket_finalizado): ?>
+                <?php if (!$is_ticket_finalizado && $soporte_ctx['rol'] !== 'auditor'): ?>
                 <hr>
                 <h5 class="card-title mt-4">Añadir Comentario</h5>
                 <form action="ver_ticket.php?id=<?php echo $id_ticket; ?>" method="POST" enctype="multipart/form-data">
                     <div class="mb-3"><textarea class="form-control" name="comentario" rows="3" placeholder="Escribe tu comentario aquí..."></textarea></div>
                     <div class="mb-3"><label for="adjuntos" class="form-label">Adjuntar Archivos (Opcional)</label><input class="form-control" type="file" id="adjuntos" name="adjuntos[]" multiple></div>
-                    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="es_privado" id="es_privado"><label class="form-check-label" for="es_privado">Marcar como comentario privado</label></div>
+                    <?php if ($_SESSION['id_rol'] == 1): ?><div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="es_privado" id="es_privado"><label class="form-check-label" for="es_privado">Marcar como comentario privado</label></div><?php endif; ?>
                     <button type="submit" name="agregar_comentario" class="btn btn-primary"><i class="bi bi-send"></i> Enviar Comentario</button>
                 </form>
                 <?php endif; ?>

@@ -2,12 +2,12 @@
 require_once '../templates/header.php';
 
 // Solo los administradores pueden acceder
-if (strtolower($_SESSION['user_rol'] ?? '') !== 'operador') {
+if (!in_array(rol_actual(), ['operador','administrador'], true)) {
     echo "<div class='alert alert-danger'>Acceso denegado.</div>";
     require_once '../templates/footer.php';
     exit();
 }
-$usuarios = $conexion->query("SELECT u.id, u.nombre, u.email, r.nombre_rol, s.nombre as sucursal_nombre FROM usuarios u LEFT JOIN usuario_roles ur ON u.id = ur.id_usuario LEFT JOIN roles r ON ur.id_rol = r.id LEFT JOIN sucursales s ON u.id_sucursal = s.id ORDER BY u.nombre");
+$usuarios = $conexion->query("SELECT u.id, u.nombre, u.email, r.nombre_rol, s.nombre as sucursal_nombre FROM usuarios u LEFT JOIN usuario_roles ur ON u.id = ur.id_usuario LEFT JOIN roles r ON ur.id_rol = r.id LEFT JOIN sucursales s ON u.id_sucursal = s.id WHERE u.id_empresa = " . (int) empresa_id_activa() . " ORDER BY u.nombre");
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">

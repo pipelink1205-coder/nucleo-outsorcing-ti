@@ -1,6 +1,6 @@
 <?php
 require_once '../config/database.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // 1. Validar que el usuario esté logueado
 if (!isset($_SESSION['user_id'])) {
@@ -104,7 +104,7 @@ try {
         $motivo_reparacion = "Devuelto con estado '$estado_recibido'. Obs: " . $observaciones_adicionales;
         $fecha_ingreso_rep = date('Y-m-d');
         // Asumiendo que tu tabla 'reparaciones' existe
-        $stmt_rep = $conexion->prepare("INSERT INTO reparaciones (id_equipo, fecha_ingreso, motivo, estado_reparacion) VALUES (?, ?, ?, 'En Proceso')");
+        $stmt_rep = $conexion->prepare("INSERT INTO reparaciones (id_empresa, id_equipo, fecha_ingreso, motivo, estado_reparacion) VALUES (" . (int) empresa_id_activa() . ", ?, ?, ?, 'En Proceso')");
         $stmt_rep->bind_param("iss", $id_equipo, $fecha_ingreso_rep, $motivo_reparacion);
         $stmt_rep->execute();
         $stmt_rep->close();

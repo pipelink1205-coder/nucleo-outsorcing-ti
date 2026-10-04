@@ -3,7 +3,7 @@ require_once '../includes/auth_check.php';
 require_once '../config/database.php';
 
 $portalEmpresa = (int) ($_SESSION['portal_empresa_id'] ?? 0);
-$portalSql = $portalEmpresa ? " AND id_empresa_portal = $portalEmpresa" : '';
+$portalSql = ' AND ' . str_replace('t.', '', soporte_scope($soporte_ctx));
 
 // Inicializar variables
 $total_abiertos = $total_pendientes = $total_resueltos = $total_tickets = 0;
@@ -63,7 +63,7 @@ $filtro_facturacion = $_GET['facturacion'] ?? '';
 $filtro_fecha_inicio = $_GET['fecha_inicio'] ?? '';
 $filtro_fecha_fin = $_GET['fecha_fin'] ?? '';
 
-$where_conditions = [];
+$where_conditions = [soporte_scope($soporte_ctx)];
 $params = [];
 
 if ($_SESSION['id_rol'] != 1 && $portalEmpresa === 0) {
@@ -94,7 +94,7 @@ $tickets = $stmt_lista->fetchAll();
 $status_classes = ['Abierto' => 'primary', 'En Progreso' => 'info', 'En Espera' => 'warning', 'Resuelto' => 'success', 'Cerrado' => 'secondary', 'Anulado' => 'dark'];
 $priority_classes = ['Baja' => 'success', 'Media' => 'warning', 'Alta' => 'danger', 'Urgente' => 'danger fw-bold'];
 $facturacion_classes = ['Pendiente' => 'warning', 'Facturado' => 'info', 'Pagado' => 'success', 'Anulado' => 'secondary'];
-$agentes_disponibles = $pdo->query("SELECT a.id_agente, u.nombre_completo FROM Agentes a JOIN Usuarios u ON a.id_usuario = u.id_usuario WHERE u.activo = 1 ORDER BY u.nombre_completo")->fetchAll();
+$agentes_disponibles = soporte_agentes($core, $pdo, $soporte_ctx);
 if ($portalEmpresa > 0) {
     $stmt_clientes_portal = $pdo->prepare("SELECT id_cliente, nombre FROM Clientes WHERE id_empresa_portal = ? ORDER BY nombre ASC");
     $stmt_clientes_portal->execute([$portalEmpresa]);
@@ -118,7 +118,7 @@ require_once '../includes/header.php';
     .card-stat .icon-bg { position: absolute; right: 10px; bottom: 10px; font-size: 5rem; opacity: 0.2; z-index: 1; }
     
     /* Degradados modernos */
-    .bg-gradient-blue { background: linear-gradient(135deg, #0062cc 0%, #003366 100%); }
+    .bg-gradient-blue { background: linear-gradient(135deg, #178f82 0%, #0b3d36 100%); }
     .bg-gradient-orange { background: linear-gradient(135deg, #ff9900 0%, #cc5200 100%); }
     .bg-gradient-green { background: linear-gradient(135deg, #28a745 0%, #145222 100%); }
     .bg-gradient-dark { background: linear-gradient(135deg, #343a40 0%, #1d2124 100%); }
@@ -222,7 +222,7 @@ require_once '../includes/header.php';
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="fw-bold text-secondary">Resultados de Búsqueda</h5>
-    <?php if ($_SESSION['id_rol'] == 1): ?>
+    <?php if ($soporte_ctx['rol'] !== 'auditor'): ?>
     <a href="crear_ticket.php" class="btn btn-primary rounded-pill px-4"><i class="bi bi-plus-lg"></i> Nuevo Ticket</a>
     <?php endif; ?>
 </div>
@@ -300,7 +300,7 @@ function exportar(formato) {
 document.addEventListener("DOMContentLoaded", function() {
     if (document.getElementById('ticketsChartDonut')) {
         const ctxDonut = document.getElementById('ticketsChartDonut').getContext('2d');
-        new Chart(ctxDonut, { type: 'doughnut', data: { labels: <?php echo $chart_labels_donut_json; ?>, datasets: [{ data: <?php echo $chart_values_donut_json; ?>, backgroundColor: ['#0d6efd', '#ffc107', '#198754', '#6c757d', '#0dcaf0', '#fd7e14'], hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }}}});
+        new Chart(ctxDonut, { type: 'doughnut', data: { labels: <?php echo $chart_labels_donut_json; ?>, datasets: [{ data: <?php echo $chart_values_donut_json; ?>, backgroundColor: ['#178f82', '#f59e0b', '#2ec4a0', '#6c757d', '#5ee69a', '#0b4f48'], hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }}}});
     }
     if (document.getElementById('ticketsChartBar')) {
         const ctxBar = document.getElementById('ticketsChartBar').getContext('2d');

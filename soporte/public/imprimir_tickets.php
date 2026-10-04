@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../includes/auth_check.php';
 require_once '../config/database.php';
 
 // Lee todos los posibles filtros de la URL
@@ -6,7 +7,7 @@ $filtro_termino = $_GET['termino'] ?? ''; $filtro_agente = $_GET['agente'] ?? ''
 $filtro_estado = $_GET['estado_tabla'] ?? ''; $filtro_cliente = $_GET['cliente'] ?? ''; $filtro_facturacion = $_GET['facturacion'] ?? '';
 
 // Construye la consulta dinámica
-$where_conditions = []; $params = [];
+$where_conditions = [soporte_scope($soporte_ctx)]; $params = [];
 if (!empty($filtro_termino)) { $where_conditions[] = "(t.asunto LIKE :termino OR t.id_ticket = :id_ticket)"; $params[':termino'] = '%' . $filtro_termino . '%'; $params[':id_ticket'] = $filtro_termino; }
 if (!empty($filtro_agente)) { $where_conditions[] = "t.id_agente_asignado = :agente"; $params[':agente'] = $filtro_agente; }
 if (!empty($filtro_prioridad)) { $where_conditions[] = "t.prioridad = :prioridad"; $params[':prioridad'] = $filtro_prioridad; }
@@ -27,7 +28,8 @@ $titulo_reporte = "Reporte de Tickets";
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo htmlspecialchars($titulo_reporte); ?></title>
+    <title><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($titulo_reporte); ?></title>
     <style>
         body { font-family: Arial, sans-serif; } table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 9px; }
@@ -36,7 +38,8 @@ $titulo_reporte = "Reporte de Tickets";
     </style>
 </head>
 <body onload="window.print()">
-    <h1><?php echo htmlspecialchars($titulo_reporte); ?></h1>
+    <h1><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($titulo_reporte); ?></h1>
     <table>
         <thead>
             <tr>
@@ -44,20 +47,32 @@ $titulo_reporte = "Reporte de Tickets";
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($tickets as $ticket): ?>
+            <?php
+require_once __DIR__ . '/../includes/auth_check.php'; foreach ($tickets as $ticket): ?>
                 <tr>
-                    <td><?php echo $ticket['id_ticket']; ?></td>
-                    <td><?php echo htmlspecialchars($ticket['cliente']); ?></td>
-                    <td><?php echo htmlspecialchars($ticket['asunto']); ?></td>
-                    <td><?php echo htmlspecialchars($ticket['nombre_tipo'] ?? 'N/A'); ?></td>
-                    <td><?php echo htmlspecialchars($ticket['estado']); ?></td>
-                    <td><?php echo htmlspecialchars($ticket['prioridad']); ?></td>
-                    <td><?php echo number_format($ticket['costo'], 2) . ' ' . htmlspecialchars($ticket['moneda']); ?></td>
-                    <td><?php echo htmlspecialchars($ticket['estado_facturacion']); ?></td>
-                    <td><?php echo htmlspecialchars($ticket['agente'] ?? 'Sin asignar'); ?></td>
-                    <td><?php echo date('d/m/Y', strtotime($ticket['fecha_creacion'])); ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo $ticket['id_ticket']; ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['cliente']); ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['asunto']); ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['nombre_tipo'] ?? 'N/A'); ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['estado']); ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['prioridad']); ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo number_format($ticket['costo'], 2) . ' ' . htmlspecialchars($ticket['moneda']); ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['estado_facturacion']); ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['agente'] ?? 'Sin asignar'); ?></td>
+                    <td><?php
+require_once __DIR__ . '/../includes/auth_check.php'; echo date('d/m/Y', strtotime($ticket['fecha_creacion'])); ?></td>
                 </tr>
-            <?php endforeach; ?>
+            <?php
+require_once __DIR__ . '/../includes/auth_check.php'; endforeach; ?>
         </tbody>
     </table>
 </body>

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../includes/auth_check.php';
 require_once '../vendor/autoload.php';
 require_once '../config/database.php';
 
@@ -17,7 +18,7 @@ $filtro_cliente = $_GET['cliente'] ?? '';
 $filtro_facturacion = $_GET['facturacion'] ?? '';
 
 // Construye la consulta dinámica
-$where_conditions = [];
+$where_conditions = [soporte_scope($soporte_ctx)];
 $params = [];
 
 if (!empty($filtro_termino)) {

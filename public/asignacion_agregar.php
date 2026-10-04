@@ -7,7 +7,7 @@ $id_sucursal_usuario = (int)$_SESSION['user_sucursal_id'];
 // Cargar sucursales SOLO si es admin general
 $sucursales = null;
 if ($es_admin_general) {
-    $sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
+    $sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
 }
 ?>
 

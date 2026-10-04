@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../includes/auth_check.php';
 require_once '../vendor/autoload.php';
 require_once '../config/database.php';
 
@@ -35,7 +36,7 @@ class PDF extends FPDF {
 $filtro_termino = $_GET['termino'] ?? ''; $filtro_agente = $_GET['agente'] ?? ''; $filtro_prioridad = $_GET['prioridad'] ?? '';
 $filtro_estado = $_GET['estado_tabla'] ?? ''; $filtro_cliente = $_GET['cliente'] ?? ''; $filtro_facturacion = $_GET['facturacion'] ?? '';
 
-$where_conditions = []; $params = [];
+$where_conditions = [soporte_scope($soporte_ctx)]; $params = [];
 if (!empty($filtro_termino)) { $where_conditions[] = "(t.asunto LIKE :termino OR t.id_ticket = :id_ticket)"; $params[':termino'] = '%' . $filtro_termino . '%'; $params[':id_ticket'] = $filtro_termino; }
 if (!empty($filtro_agente)) { $where_conditions[] = "t.id_agente_asignado = :agente"; $params[':agente'] = $filtro_agente; }
 if (!empty($filtro_prioridad)) { $where_conditions[] = "t.prioridad = :prioridad"; $params[':prioridad'] = $filtro_prioridad; }

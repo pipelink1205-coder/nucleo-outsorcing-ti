@@ -6,6 +6,7 @@ $sql = "SELECT b.*, e.codigo_inventario, ma.nombre as marca, mo.nombre as modelo
         JOIN equipos e ON b.id_equipo = e.id
         LEFT JOIN marcas ma ON e.id_marca = ma.id
         LEFT JOIN modelos mo ON e.id_modelo = mo.id
+        WHERE e.id_empresa = " . (int) empresa_id_activa() . "
         ORDER BY b.fecha_baja DESC";
 $resultado = $conexion->query($sql);
 ?>

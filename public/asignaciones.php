@@ -17,7 +17,7 @@ $sql_select = "SELECT
                JOIN modelos mo ON e.id_modelo = mo.id
                JOIN sucursales s ON e.id_sucursal = s.id";
 
-$where_clauses = [];
+$where_clauses = ['e.id_empresa = ' . (int) empresa_id_activa()];
 $params = [];
 $types = "";
 
@@ -52,9 +52,9 @@ if (!empty($params)) { $stmt->bind_param($types, ...$params); }
 $stmt->execute();
 $resultado = $stmt->get_result();
 
-$sucursales = $conexion->query("SELECT * FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-$empleados = $conexion->query("SELECT id, nombres, apellidos FROM empleados WHERE estado = 'Activo' ORDER BY apellidos");
-$equipos = $conexion->query("SELECT id, codigo_inventario FROM equipos WHERE estado != 'De Baja' ORDER BY codigo_inventario");
+$sucursales = $conexion->query("SELECT * FROM sucursales WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
+$empleados = $conexion->query("SELECT id, nombres, apellidos FROM empleados WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY apellidos");
+$equipos = $conexion->query("SELECT id, codigo_inventario FROM equipos WHERE estado != 'De Baja' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY codigo_inventario");
 ?>
 
 <h1 class="h2 mb-3">Historial de Asignaciones</h1>

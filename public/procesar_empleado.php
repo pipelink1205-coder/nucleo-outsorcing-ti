@@ -1,6 +1,6 @@
 <?php
 require_once '../config/database.php'; // Incluir conexión
-session_start(); // Iniciar sesión para validaciones o mensajes
+if (session_status() === PHP_SESSION_NONE) { session_start(); } // Iniciar sesión para validaciones o mensajes
 
 // Verificar si es una solicitud POST y la acción es 'agregar'
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['accion']) && $_GET['accion'] === 'agregar') {
@@ -22,14 +22,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['accion']) && $_GET['ac
     // (Aquí puedes añadir más validaciones, como DNI único)
 
     // 3. Preparar la consulta SQL para insertar
-    $sql = "INSERT INTO empleados (id_sucursal, dni, nombres, apellidos, id_area, id_cargo, estado) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)";
-    
+    $sql = "INSERT INTO empleados (id_empresa, id_sucursal, dni, nombres, apellidos, id_area, id_cargo, estado)
+            VALUES (" . (int) empresa_id_activa() . ", ?, ?, ?, ?, ?, ?, ?)";
+
     $stmt = $conexion->prepare($sql);
 
     if ($stmt) {
         $stmt->bind_param("isssiis", $id_sucursal, $dni, $nombres, $apellidos, $id_area, $id_cargo, $estado);
-        
+
         // 4. Ejecutar la consulta
         if ($stmt->execute()) {
             // Éxito: Redirigir a la lista de empleados

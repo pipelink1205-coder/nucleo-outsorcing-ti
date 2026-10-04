@@ -24,16 +24,23 @@ $rol = etiqueta_rol(rol_actual());
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Módulos | <?php echo htmlspecialchars($empresa); ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/identidad.css?v=<?php echo time(); ?>">
 </head>
-<body class="bg-light">
-<div class="bg-primary text-white py-4 mb-4">
-    <div class="container d-flex justify-content-between align-items-center gap-3">
-        <div>
-            <div class="text-white-50 small"><?php echo htmlspecialchars($empresa); ?></div>
-            <h1 class="h3 mb-0">Qué vas a operar</h1>
-            <div class="small"><?php echo htmlspecialchars($rol); ?></div>
+<body>
+<div class="app-hero py-4 mb-4">
+    <div class="container d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <div class="d-flex align-items-center gap-3">
+            <img src="img/smarttech-logo.png" alt="" width="48" height="48" class="bg-white rounded-3 p-1">
+            <div>
+                <div class="text-white-50 small">Empresa activa</div>
+                <h1 class="h3 mb-0"><?php echo htmlspecialchars($empresa); ?></h1>
+                <div class="small"><?php echo htmlspecialchars($rol); ?> · Qué vas a operar</div>
+            </div>
         </div>
         <div class="d-flex gap-2">
             <?php if (es_operador()): ?>

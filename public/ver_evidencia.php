@@ -1,6 +1,6 @@
 <?php
 require_once '../config/database.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // 1. Validar que el usuario haya iniciado sesión
 if (!isset($_SESSION['user_id'])) {

@@ -10,7 +10,7 @@ if (!isset($_GET['id_sucursal']) || !is_numeric($_GET['id_sucursal'])) {
 
 $id_sucursal = (int)$_GET['id_sucursal'];
 
-$sql = "SELECT id, dni, nombres, apellidos FROM empleados WHERE id_sucursal = ? AND estado = 'Activo' ORDER BY apellidos, nombres";
+$sql = "SELECT id, dni, nombres, apellidos FROM empleados WHERE id_empresa = " . (int) empresa_id_activa() . " AND id_sucursal = ? AND estado = 'Activo' ORDER BY apellidos, nombres";
 $stmt = $conexion->prepare($sql);
 
 if ($stmt) {

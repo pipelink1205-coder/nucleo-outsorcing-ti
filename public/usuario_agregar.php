@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../config/database.php';
 
 // Validar acceso (Solo administradores)
-if (strtolower($_SESSION['user_rol'] ?? '') !== 'operador') {
+if (!in_array(rol_actual(), ['operador','administrador'], true)) {
     header("Location: index.php");
     exit();
 }
@@ -22,6 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_sucursal = !empty($_POST['id_sucursal']) ? $_POST['id_sucursal'] : null;
     $id_rol = $_POST['id_rol'];
     $activo = 1; // Por defecto activo al crear
+    $id_empresa = (int) empresa_id_activa();
+    $id_empleado = !empty($_POST['id_empleado']) ? (int) $_POST['id_empleado'] : null;
 
     if (empty($nombre) || empty($email) || empty($password) || empty($id_rol)) {
         $mensaje = "Por favor complete los campos obligatorios.";
@@ -45,9 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hash_password = password_hash($password, PASSWORD_DEFAULT);
                 
                 // Nota: id_sucursal puede ser NULL si es un admin global
-                $sql_user = "INSERT INTO usuarios (nombre, email, password, id_sucursal, activo, fecha_creacion) VALUES (?, ?, ?, ?, ?, NOW())";
+                $sql_user = "INSERT INTO usuarios (nombre, email, password, id_sucursal, activo, id_empresa, id_empleado, fecha_creacion) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
                 $stmt = $conexion->prepare($sql_user);
-                $stmt->bind_param("sssii", $nombre, $email, $hash_password, $id_sucursal, $activo);
+                $stmt->bind_param("sssiiii", $nombre, $email, $hash_password, $id_sucursal, $activo, $id_empresa, $id_empleado);
                 
                 if (!$stmt->execute()) {
                     throw new Exception("Error al crear usuario: " . $stmt->error);
@@ -88,8 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once '../templates/header.php';
 
 // Cargar listas para selectores
-$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-$roles = $conexion->query("SELECT id, nombre_rol FROM roles ORDER BY nombre_rol");
+$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
+$roles = $conexion->query("SELECT id, nombre_rol FROM roles WHERE nombre_rol IN ('Administrador','Auditor','Empleado') ORDER BY nombre_rol");
+$empleados_vinculo = $conexion->query('SELECT id,nombres,apellidos FROM empleados WHERE id_empresa=' . (int) empresa_id_activa());
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -112,6 +115,10 @@ $roles = $conexion->query("SELECT id, nombre_rol FROM roles ORDER BY nombre_rol"
     </div>
     <div class="card-body p-4">
         <form action="usuario_agregar.php" method="POST" autocomplete="off">
+            <label class="form-label">Empleado asociado (necesario para solicitar soporte como empleado)</label>
+            <select class="form-select mb-3" name="id_empleado"><option value="">Sin vínculo</option>
+                <?php while ($emp = $empleados_vinculo->fetch_assoc()): ?><option value="<?php echo (int) $emp['id']; ?>"><?php echo htmlspecialchars($emp['nombres'] . ' ' . $emp['apellidos']); ?></option><?php endwhile; ?>
+            </select>
             <div class="row g-3">
                 
                 <div class="col-md-6">

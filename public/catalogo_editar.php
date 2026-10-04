@@ -100,10 +100,10 @@ $titulo_elemento = ucfirst(str_replace('_', ' ', $tipo_catalogo));
 $marcas = null;
 $areas = null;
 if ($tipo_catalogo === 'modelo') {
-    $marcas = $conexion->query("SELECT id, nombre FROM marcas WHERE estado = 'Activo' ORDER BY nombre");
+    $marcas = $conexion->query("SELECT id, nombre FROM marcas WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
 }
 if ($tipo_catalogo === 'cargo') {
-    $areas = $conexion->query("SELECT id, nombre FROM areas WHERE estado = 'Activo' ORDER BY nombre");
+    $areas = $conexion->query("SELECT id, nombre FROM areas WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
 }
 
 ?>

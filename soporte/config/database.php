@@ -1,9 +1,9 @@
 <?php
 // Configuración de la conexión a la base de datos
-$host = 'localhost';
-$dbname = 'soporte_db'; // El nombre que usaste al crear la BD
-$username = 'root'; // Usuario por defecto en XAMPP
-$password = '';     // Contraseña por defecto en XAMPP es vacía
+$host = getenv('DB_HOST') ?: 'localhost';
+$dbname = getenv('SUPPORT_DB_NAME') ?: 'soporte_db';
+$username = getenv('DB_USER') ?: 'root';
+$password = getenv('DB_PASS') ?: '';
 $charset = 'utf8mb4';
 
 $options = [

@@ -9,10 +9,10 @@ $sql = "SELECT r.id AS id_reparacion, r.fecha_ingreso, r.fecha_salida, r.motivo,
         FROM reparaciones r
         JOIN equipos e ON r.id_equipo = e.id
         LEFT JOIN marcas ma ON e.id_marca = ma.id
-        LEFT JOIN modelos mo ON e.id_modelo = mo.id";
+        LEFT JOIN modelos mo ON e.id_modelo = mo.id WHERE e.id_empresa = " . (int) empresa_id_activa();
 
 if ($filtro_estado !== 'Todas') {
-    $sql .= " WHERE r.estado_reparacion = ?";
+    $sql .= " AND r.estado_reparacion = ?";
 }
 $sql .= " ORDER BY r.fecha_ingreso DESC";
 

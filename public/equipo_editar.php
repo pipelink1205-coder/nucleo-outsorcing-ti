@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensaje = "Por favor complete los campos obligatorios.";
         $tipo_mensaje = "danger";
     } else {
-        $check = $conexion->prepare("SELECT id FROM equipos WHERE codigo_inventario = ? AND id != ?");
+        $check = $conexion->prepare("SELECT id FROM equipos WHERE codigo_inventario = ? AND id != ? AND id_empresa = " . (int) empresa_id_activa() . "");
         $check->bind_param("si", $codigo, $id_equipo);
         $check->execute();
         $check->store_result();
@@ -95,9 +95,9 @@ if (!$equipo) {
 require_once '../templates/header.php';
 
 // CARGAR CATÁLOGOS
-$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-$tipos = $conexion->query("SELECT id, nombre FROM tipos_equipo WHERE estado = 'Activo' ORDER BY nombre");
-$marcas = $conexion->query("SELECT id, nombre FROM marcas WHERE estado = 'Activo' ORDER BY nombre");
+$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
+$tipos = $conexion->query("SELECT id, nombre FROM tipos_equipo WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
+$marcas = $conexion->query("SELECT id, nombre FROM marcas WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
 
 // CORRECCIÓN: Cargar solo los modelos de la marca actual para la vista inicial
 $id_marca_actual = $equipo['id_marca'];

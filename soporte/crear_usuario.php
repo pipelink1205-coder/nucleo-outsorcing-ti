@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/auth_check.php';
 // Este es un script de utilidad. Úsalo una vez para crear tu admin/agente
 // y luego considera eliminarlo de tu servidor por seguridad.
 

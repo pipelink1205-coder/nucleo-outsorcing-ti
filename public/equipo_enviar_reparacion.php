@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt_equipo->execute();
 
         // 2. Insertar el registro en la nueva tabla 'reparaciones'
-        $stmt_reparacion = $conexion->prepare("INSERT INTO reparaciones (id_equipo, fecha_ingreso, motivo, proveedor_servicio, estado_reparacion) VALUES (?, ?, ?, ?, 'En Proceso')");
+        $stmt_reparacion = $conexion->prepare("INSERT INTO reparaciones (id_empresa, id_equipo, fecha_ingreso, motivo, proveedor_servicio, estado_reparacion) VALUES (" . (int) empresa_id_activa() . ", ?, ?, ?, ?, 'En Proceso')");
         $stmt_reparacion->bind_param("isss", $id_equipo, $fecha_ingreso, $motivo, $proveedor);
         $stmt_reparacion->execute();
 

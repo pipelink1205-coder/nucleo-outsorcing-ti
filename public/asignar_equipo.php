@@ -1,6 +1,6 @@
 <?php
 require_once '../config/database.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // Validar que el usuario esté logueado
 if (!isset($_SESSION['user_id'])) {
@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // 3a. Insertar el registro de asignación
         // CORRECCIÓN: Se eliminó 'id_usuario_entrega' de la consulta
-        $sql_asig = "INSERT INTO asignaciones (id_equipo, id_empleado, fecha_entrega, observaciones_entrega, estado_asignacion)
-                     VALUES (?, ?, ?, ?, 'Activa')";
+        $sql_asig = "INSERT INTO asignaciones (id_empresa, id_equipo, id_empleado, fecha_entrega, observaciones_entrega, estado_asignacion)
+                     VALUES (" . (int) empresa_id_activa() . ", ?, ?, ?, ?, 'Activa')";
         $stmt_asig = $conexion->prepare($sql_asig);
         // CORRECCIÓN: Se ajustó el bind_param (de 'iiiss' a 'iiss')
         $stmt_asig->bind_param("iiss", $id_equipo, $id_empleado, $fecha_entrega, $observaciones);

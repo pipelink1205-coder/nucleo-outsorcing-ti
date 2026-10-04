@@ -72,10 +72,6 @@ if (!indice_existe($db, 'equipos', 'uk_equipos_serie_empresa')) {
 }
 
 $db->query("INSERT IGNORE INTO roles (nombre_rol) VALUES ('Operador'), ('Auditor'), ('Empleado')");
-$db->query("UPDATE usuario_roles ur
-    JOIN roles actual ON actual.id = ur.id_rol
-    JOIN roles op ON op.nombre_rol = 'Operador'
-    SET ur.id_rol = op.id
-    WHERE ur.id_usuario = 1 AND actual.nombre_rol = 'Administrador'");
+// No reasignar roles por un ID fijo. El operador global se configura explícitamente.
 
 echo "Nucleo multiempresa listo\n";

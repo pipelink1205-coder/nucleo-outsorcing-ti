@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensaje = "Por favor complete los campos obligatorios.";
         $tipo_mensaje = "danger";
     } else {
-        $check = $conexion->prepare("SELECT id FROM empleados WHERE dni = ? AND id != ?");
+        $check = $conexion->prepare("SELECT id FROM empleados WHERE dni = ? AND id != ? AND id_empresa = " . (int) empresa_id_activa() . "");
         $check->bind_param("si", $dni, $id_empleado);
         $check->execute();
         $check->store_result();
@@ -85,8 +85,8 @@ if (!$empleado) {
 require_once '../templates/header.php';
 
 // CARGAR LISTAS PARA SELECTS
-$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' ORDER BY nombre");
-$areas = $conexion->query("SELECT id, nombre FROM areas WHERE estado = 'Activo' ORDER BY nombre");
+$sucursales = $conexion->query("SELECT id, nombre FROM sucursales WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
+$areas = $conexion->query("SELECT id, nombre FROM areas WHERE estado = 'Activo' AND id_empresa = " . (int) empresa_id_activa() . " ORDER BY nombre");
 
 // PRECARGA INTELIGENTE DE CARGOS:
 // Cargamos SOLO los cargos que pertenecen al área actual del empleado
