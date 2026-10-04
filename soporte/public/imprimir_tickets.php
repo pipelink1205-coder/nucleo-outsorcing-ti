@@ -29,7 +29,7 @@ $titulo_reporte = "Reporte de Tickets";
 <head>
     <meta charset="UTF-8">
     <title><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($titulo_reporte); ?></title>
+ echo htmlspecialchars($titulo_reporte); ?></title>
     <style>
         body { font-family: Arial, sans-serif; } table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 9px; }
@@ -39,7 +39,7 @@ require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($tit
 </head>
 <body onload="window.print()">
     <h1><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($titulo_reporte); ?></h1>
+ echo htmlspecialchars($titulo_reporte); ?></h1>
     <table>
         <thead>
             <tr>
@@ -48,31 +48,31 @@ require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($tit
         </thead>
         <tbody>
             <?php
-require_once __DIR__ . '/../includes/auth_check.php'; foreach ($tickets as $ticket): ?>
+ foreach ($tickets as $ticket): ?>
                 <tr>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo $ticket['id_ticket']; ?></td>
+ echo $ticket['id_ticket']; ?></td>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['cliente']); ?></td>
+ echo htmlspecialchars($ticket['cliente']); ?></td>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['asunto']); ?></td>
+ echo htmlspecialchars($ticket['asunto']); ?></td>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['nombre_tipo'] ?? 'N/A'); ?></td>
+ echo htmlspecialchars($ticket['nombre_tipo'] ?? 'N/A'); ?></td>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['estado']); ?></td>
+ echo htmlspecialchars($ticket['estado']); ?></td>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['prioridad']); ?></td>
+ echo htmlspecialchars($ticket['prioridad']); ?></td>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo number_format($ticket['costo'], 2) . ' ' . htmlspecialchars($ticket['moneda']); ?></td>
+ echo number_format($ticket['costo'], 2, ',', '.') . ' ' . htmlspecialchars($ticket['moneda']); ?></td>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['estado_facturacion']); ?></td>
+ echo htmlspecialchars($ticket['estado_facturacion']); ?></td>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo htmlspecialchars($ticket['agente'] ?? 'Sin asignar'); ?></td>
+ echo htmlspecialchars($ticket['agente'] ?? 'Sin asignar'); ?></td>
                     <td><?php
-require_once __DIR__ . '/../includes/auth_check.php'; echo date('d/m/Y', strtotime($ticket['fecha_creacion'])); ?></td>
+ echo date('d/m/Y', strtotime($ticket['fecha_creacion'])); ?></td>
                 </tr>
             <?php
-require_once __DIR__ . '/../includes/auth_check.php'; endforeach; ?>
+ endforeach; ?>
         </tbody>
     </table>
 </body>

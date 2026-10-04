@@ -93,7 +93,7 @@ $pdf->SetFont('Arial', 'B', 12);
 $pdf->Cell(0, 10, utf8_decode('1. Datos del Colaborador que Recibe'), 0, 1, 'L');
 $pdf->SetFont('Arial', '', 11);
 $pdf->FilaDato('Nombres y Apellidos', $data['emp_apellidos'] . ', ' . $data['emp_nombres']);
-$pdf->FilaDato('DNI', $data['emp_dni']);
+$pdf->FilaDato('Documento', $data['emp_dni']);
 $pdf->FilaDato('Sucursal', $data['sucursal_nombre']);
 $pdf->FilaDato(utf8_decode('Área'), $data['area_nombre']);
 $pdf->FilaDato('Cargo', $data['cargo_nombre']);
@@ -134,7 +134,7 @@ $pdf->Cell(95, 10, 'Firma del Colaborador', 0, 0, 'C');
 $pdf->Cell(95, 10, 'Entregado por (TI)', 0, 1, 'C');
 $pdf->Cell(95, 10, utf8_decode($data['emp_apellidos'] . ', ' . $data['emp_nombres']), 0, 0, 'C');
 $pdf->Cell(95, 10, utf8_decode($usuario_ti_entrega), 0, 1, 'C');
-$pdf->Cell(95, 10, 'DNI: ' . $data['emp_dni'], 0, 0, 'C');
+$pdf->Cell(95, 10, 'Documento: ' . $data['emp_dni'], 0, 0, 'C');
 $pdf->Cell(95, 10, utf8_decode('Área de TI'), 0, 1, 'C');
 
 

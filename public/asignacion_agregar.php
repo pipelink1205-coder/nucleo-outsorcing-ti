@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectEmpleado.innerHTML = '<option value="">Seleccionar Empleado *</option>';
                 if (empleados && !empleados.error && empleados.length > 0) {
                     empleados.forEach(emp => {
-                        const option = new Option(`${emp.apellidos}, ${emp.nombres} (DNI: ${emp.dni})`, emp.id);
+                        const option = new Option(`${emp.apellidos}, ${emp.nombres} (Documento: ${emp.dni})`, emp.id);
                         selectEmpleado.add(option);
                     });
                     selectEmpleado.disabled = false;

@@ -20,7 +20,7 @@ Se mantiene una sola cuenta de empresa por usuario y una sucursal opcional. El o
 
 ## Etapas implementadas
 
-1. **Preparación y datos:** migración CLI aditiva, repetible, índices de ámbito, DNI único por empresa, relaciones compuestas y herramienta de clasificación explícita con simulación predeterminada. Se elimina la reasignación del usuario 1 a operador en la migración antigua.
+1. **Preparación y datos:** migración CLI aditiva, repetible, índices de ámbito, Documento (`dni`) único por empresa, relaciones compuestas y herramienta de clasificación explícita con simulación predeterminada. Se elimina la reasignación del usuario 1 a operador en la migración antigua.
 2. **Identidad común:** contexto validado en cada solicitud contra usuarios activos y roles del núcleo; puente sin IDs fijos; administración de usuarios compartida, vínculo usuario-empleado en alta/edición.
 3. **Tickets:** formulario y detalle con vínculos organizativos, validación de pertenencia, creador real y autoría de comentarios. Tickets antiguos se conservan sin inventar solicitante ni equipo.
 4. **Permisos:** control previo a lecturas/escrituras, filtro de listado/estadísticas/exportaciones, descarga autenticada de adjuntos, bloqueo de herramientas globales antiguas y pruebas entre dos empresas.
@@ -79,7 +79,7 @@ La prueba clona ambas bases en nombres aleatorios `test_outsourcing_*`, ejecuta 
 
 Cobertura: conservación de columnas históricas y usuarios de soporte, repetibilidad, identidades distintas y estables, sesión con rol/empresa falsificados, detalle/POST cruzados, listas e impresión aisladas, APIs y edición por ID, FK entre empresas, creación con y sin equipo, equipo manipulado, autor real de comentarios, CSRF, auditor de solo lectura, comentarios de empleado y revocación de acceso de una sesión ya abierta.
 
-Validación de esta implementación: **126 comprobaciones correctas** con MySQL/MariaDB local y PHP de XAMPP. La base local de soporte estaba vacía de tickets; por ello el historial de tickets se comprueba con un fixture explícito, además de conservar las identidades históricas reales copiadas. También se validó la sintaxis de los archivos PHP de la aplicación. Se verificaron exportaciones PDF/Excel reales, simulación y aplicación de clasificación histórica, y el login con credenciales del núcleo. Las pruebas automatizadas no equivalen a una revisión visual de todos los formularios antiguos ni a un ensayo de restauración en producción.
+Validación de esta implementación: **129 comprobaciones correctas** con MySQL/MariaDB local y PHP de XAMPP. La base local de soporte estaba vacía de tickets; por ello el historial de tickets se comprueba con un fixture explícito, además de conservar las identidades históricas reales copiadas. También se validó la sintaxis de los archivos PHP de la aplicación. Se verificaron exportaciones PDF/Excel reales, simulación y aplicación de clasificación histórica, y el login con credenciales del núcleo. Las pruebas automatizadas no equivalen a una revisión visual de todos los formularios antiguos ni a un ensayo de restauración en producción.
 
 La migración aditiva se ejecutó también en las bases locales el 3 de octubre de 2026, después de respaldar ambos esquemas en `.local/backups/nucleo-927b21e697e04895b3b5551dbc510dd1/`. Reportó cero tickets pendientes. Los respaldos contienen datos privados, están excluidos de Git y protegidos de acceso HTTP directo en Apache. No se aplicó clasificación manual a los datos reales ni se cambiaron sus roles.
 
@@ -88,3 +88,11 @@ La migración aditiva se ejecutó también en las bases locales el 3 de octubre 
 Esta etapa mantiene dos esquemas en el mismo servidor; las FK cruzadas hacen que separarlos requiera un contrato de API y validación equivalente. Las tablas legadas de clientes/agentes son adaptadores de compatibilidad, no fuentes nuevas de identidad. Migrar los usuarios de soporte sin cuenta común requiere darles una cuenta y un rol revisados en el núcleo. Las relaciones nullable permiten conservar historia incompleta; no habilitar NOT NULL masivo sin terminar la clasificación.
 
 Si se necesitan empleados con acceso a solicitudes creadas por terceros para ellos, definir esa regla explícitamente y extender el vínculo usuario-empleado. Si una persona necesita pertenecer a varias empresas, introducir membresías explícitas antes de permitir selección de empresa a cuentas de cliente. Ninguno de estos permisos se concede por coincidencias de correo ni por IDs enviados por el navegador.
+
+## Formatos para Colombia
+
+Se reemplazó la etiqueta DNI por Documento en empleados, búsquedas, selectores de asignación y actas de entrega/devolución. La columna interna `dni` y sus valores permanecen para conservar compatibilidad; los documentos siguen siendo texto y admiten letras y ceros iniciales.
+
+Los nuevos tickets guardan COP (pesos colombianos), y la configuración del inventario usa `$ COP`. Los reportes e impresión usan separadores colombianos: `1.234,56`. Excel exporta costos como números y mantiene la moneda en su columna independiente.
+
+Ejecutar `php migrations/localizacion_colombia.php` después de la migración compartida. Puede repetirse y normaliza también el símbolo heredado de soles; las sesiones abiertas se actualizan al cargar el encabezado. No convierte importes ni cambia monedas históricas. En la base local no había tickets ni reparaciones con importes pendientes de conversión. La migración regional se aplicó el 4 de octubre de 2026.

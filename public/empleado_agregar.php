@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $check->store_result();
 
         if ($check->num_rows > 0) {
-            $mensaje = "El DNI ya está registrado.";
+            $mensaje = "El Documento ya está registrado.";
             $tipo_mensaje = "warning";
         } else {
             // Insertar
@@ -105,7 +105,7 @@ $areas = $conexion->query("SELECT id, nombre FROM areas WHERE estado = 'Activo' 
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">DNI <span class="text-danger">*</span></label>
+                    <label class="form-label fw-bold">Documento <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" name="dni" required placeholder="Número de documento">
                 </div>
 

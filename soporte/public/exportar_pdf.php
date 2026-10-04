@@ -71,7 +71,7 @@ foreach ($tickets as $ticket) {
         utf8_decode($ticket['nombre_tipo'] ?? 'N/A'),
         $ticket['estado'],
         $ticket['prioridad'],
-        number_format($ticket['costo'], 2) . ' ' . $ticket['moneda'],
+        number_format($ticket['costo'], 2, ',', '.') . ' ' . $ticket['moneda'],
         $ticket['estado_facturacion'],
         utf8_decode($ticket['agente'] ?? 'Sin asignar'),
         date('d/m/Y H:i', strtotime($ticket['fecha_creacion']))

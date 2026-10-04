@@ -45,8 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             // 1. Insertar el ticket
             $stmt = $pdo->prepare(
-                "INSERT INTO Tickets (id_cliente, id_tipo_caso, asunto, prioridad, descripcion, estado, id_empresa_portal, id_sucursal, id_solicitante, id_equipo, id_solicitante_usuario)
-                 VALUES (?, ?, ?, ?, ?, 'Abierto', ?, ?, ?, ?, ?)"
+                "INSERT INTO Tickets (id_cliente, id_tipo_caso, asunto, prioridad, descripcion, estado, id_empresa_portal, id_sucursal, id_solicitante, id_equipo, id_solicitante_usuario, moneda)
+                 VALUES (?, ?, ?, ?, ?, 'Abierto', ?, ?, ?, ?, ?, 'COP')"
             );
             $stmt->execute([$id_cliente, $id_tipo_caso, $asunto, $prioridad, $descripcion, $portalEmpresa, $id_sucursal, $id_solicitante, $id_equipo, $soporte_ctx['usuario']]);
             $id_ticket_nuevo = $pdo->lastInsertId();

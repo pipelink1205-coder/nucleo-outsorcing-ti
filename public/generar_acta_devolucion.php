@@ -91,7 +91,7 @@ $pdf->SetFont('Arial', 'B', 12);
 $pdf->Cell(0, 10, '1. Datos del Colaborador que Devuelve', 0, 1, 'L');
 $pdf->SetFont('Arial', '', 11);
 $pdf->FilaDato('Nombres y Apellidos', $datos['apellidos'] . ', ' . $datos['nombres']);
-$pdf->FilaDato('DNI', $datos['dni']);
+$pdf->FilaDato('Documento', $datos['dni']);
 $pdf->FilaDato('Cargo', $datos['cargo_nombre']);
 $pdf->Ln(10);
 
@@ -141,7 +141,7 @@ $pdf->Cell(95, 10, 'Firma del Empleado (Devuelve)', 0, 0, 'C');
 $pdf->Cell(95, 10, 'Recibido por (TI)', 0, 1, 'C');
 $pdf->Cell(95, 10, utf8_decode($datos['apellidos'] . ', ' . $datos['nombres']), 0, 0, 'C');
 $pdf->Cell(95, 10, utf8_decode($usuario_ti_recibe), 0, 1, 'C');
-$pdf->Cell(95, 10, 'DNI: ' . $datos['dni'], 0, 0, 'C');
+$pdf->Cell(95, 10, 'Documento: ' . $datos['dni'], 0, 0, 'C');
 $pdf->Cell(95, 10, utf8_decode('Área de TI'), 0, 1, 'C');
 
 $pdf->Output('I', 'Acta_Devolucion_' . $datos['codigo_inventario'] . '.pdf');

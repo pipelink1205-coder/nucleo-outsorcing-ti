@@ -61,6 +61,10 @@ try {
     $antes = $pdo->query('SELECT * FROM tickets ORDER BY id_ticket')->fetchAll();
     $usuariosAntes = $pdo->query('SELECT * FROM usuarios ORDER BY id_usuario')->fetchAll();
     migrar_compartido($core, $pdo); migrar_compartido($core, $pdo);
+    require __DIR__ . '/../migrations/localizacion_colombia.php';
+    migrar_colombia($core,$pdo); migrar_colombia($core,$pdo);
+    $moneda=$pdo->query("SHOW COLUMNS FROM tickets LIKE 'moneda'")->fetch(PDO::FETCH_ASSOC);
+    comprobar($moneda['Default']==='COP','Moneda predeterminada COP tras migración repetible');
     $despues = $pdo->query('SELECT * FROM tickets ORDER BY id_ticket')->fetchAll();
     comprobar(count($antes) === count($despues), 'Migración repetible conserva cantidad de tickets');
     foreach ($antes as $i=>$fila) { foreach ($fila as $col=>$valor) { if ($col !== 'id_empresa_portal' && $col !== 'ultima_actualizacion') { comprobar($despues[$i][$col] === $valor, "Dato histórico conservado: ticket {$fila['id_ticket']}.$col"); } } }
@@ -129,6 +133,8 @@ try {
     comprobar($status===200 && strpos($body,'%PDF')===0 && strpos($pdfTexto,'TICKET_EMPRESA_A')!==false && strpos($pdfTexto,'TICKET_EMPRESA_B')===false,'HTTP PDF contiene solo empresa A');
     comprobar(solicitar($base.'/public/empleado_editar.php?id='.$b['empleado'],$sa)[0]===404,'HTTP edición de empleado ajeno rechazada');
     comprobar(solicitar($base.'/public/empleado_editar.php?id='.$a['empleado'],$sa)[0]===200,'HTTP edición de empleado propio funciona');
+    [$status,$html]=solicitar($base.'/public/empleado_editar.php?id='.$a['empleado'],$sa);
+    comprobar(strpos($html,'Documento')!==false && strpos($html,'DNI')===false,'Formulario utiliza Documento');
     comprobar(solicitar($base.'/public/gestion_usuarios.php',$sa)[0]===200,'HTTP administrador gestiona usuarios comunes');
     comprobar(solicitar($base.'/public/equipo_editar.php?id='.$b['equipo'],$sa)[0]===404,'HTTP edición de equipo ajeno rechazada');
     comprobar(solicitar($base.'/public/obtener_empleados_por_sucursal.php?id_sucursal='.$b['sucursal'],$sa)[0]===404,'HTTP API sucursal ajena rechazada');
@@ -137,6 +143,7 @@ try {
     comprobar(solicitar($base.'/soporte/public/crear_ticket.php',$sa,$datos)[0]===302,'HTTP crea ticket sin equipo');
     $nuevo=$pdo->query("SELECT * FROM tickets WHERE asunto='CREADO_HTTP_A'")->fetch(PDO::FETCH_ASSOC);
     comprobar((int)$nuevo['id_empresa_portal']===$a['empresa'] && (int)$nuevo['id_solicitante_usuario']===$a['usuario'] && $nuevo['id_equipo']===null,'HTTP persiste empresa y creador reales');
+    comprobar($nuevo['moneda']==='COP','Ticket nuevo guarda pesos colombianos');
     $datos['asunto']='CREADO_HTTP_EQUIPO'; $datos['id_equipo']=$a['equipo'];
     comprobar(solicitar($base.'/soporte/public/crear_ticket.php',$sa,$datos)[0]===302,'HTTP crea ticket con equipo');
     $datos['id_equipo']=$b['equipo'];

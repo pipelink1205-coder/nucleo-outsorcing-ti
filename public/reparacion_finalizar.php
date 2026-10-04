@@ -88,7 +88,7 @@ if (!$reparacion || $reparacion['estado_reparacion'] !== 'En Proceso') {
                     <label for="costo" class="form-label">Costo Final de la Reparación</label>
                     <div class="input-group">
                         <span class="input-group-text">
-                            <?php echo htmlspecialchars($_SESSION['configuracion']['moneda_simbolo'] ?? 'S/'); ?>
+                            <?php echo htmlspecialchars($_SESSION['configuracion']['moneda_simbolo'] ?? '$ COP'); ?>
                         </span>
                         <input type="number" step="0.01" class="form-control" id="costo" name="costo" placeholder="0.00" value="<?php echo htmlspecialchars($reparacion['costo'] > 0 ? $reparacion['costo'] : ''); ?>">
                     </div>

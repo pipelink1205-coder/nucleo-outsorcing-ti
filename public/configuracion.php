@@ -10,7 +10,7 @@ if (strtolower($_SESSION['user_rol'] ?? '') !== 'operador') {
 
 // Procesar el formulario al guardar
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nuevo_simbolo = trim($_POST['moneda_simbolo'] ?? 'S/');
+    $nuevo_simbolo = trim($_POST['moneda_simbolo'] ?? '$ COP');
     
     if (!empty($nuevo_simbolo)) {
         // 1. Actualizar en la Base de Datos
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Obtener el valor actual (desde la sesión que ya carga el header, o BD por seguridad)
-$moneda_actual = $_SESSION['configuracion']['moneda_simbolo'] ?? 'S/';
+$moneda_actual = $_SESSION['configuracion']['moneda_simbolo'] ?? '$ COP';
 ?>
 
 <h1 class="h2 mb-4">Configuración del Sistema</h1>
@@ -50,7 +50,7 @@ $moneda_actual = $_SESSION['configuracion']['moneda_simbolo'] ?? 'S/';
                 <div class="input-group">
                     <input type="text" class="form-control" id="moneda_simbolo" name="moneda_simbolo" 
                            value="<?php echo htmlspecialchars($moneda_actual); ?>" required>
-                    <span class="input-group-text">Ejemplo: S/, $, €, US$</span>
+                    <span class="input-group-text">Pesos colombianos: $ COP</span>
                 </div>
                 <div class="form-text">Este símbolo se mostrará en todos los reportes y costos del sistema.</div>
             </div>

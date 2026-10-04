@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['accion']) && $_GET['ac
         header("Location: empleado_agregar.php?status=error_campos");
         exit();
     }
-    // (Aquí puedes añadir más validaciones, como DNI único)
+    // (Aquí puedes añadir más validaciones, como Documento único)
 
     // 3. Preparar la consulta SQL para insertar
     $sql = "INSERT INTO empleados (id_empresa, id_sucursal, dni, nombres, apellidos, id_area, id_cargo, estado)

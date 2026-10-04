@@ -75,7 +75,8 @@ $row = 2;
 foreach ($tickets as $ticket) {
     $sheet->setCellValue('A' . $row, $ticket['id_ticket']); $sheet->setCellValue('B' . $row, $ticket['cliente']); $sheet->setCellValue('C' . $row, $ticket['asunto']);
     $sheet->setCellValue('D' . $row, $ticket['nombre_tipo'] ?? 'N/A'); $sheet->setCellValue('E' . $row, $ticket['estado']); $sheet->setCellValue('F' . $row, $ticket['prioridad']);
-    $sheet->setCellValue('G' . $row, number_format($ticket['costo'], 2)); $sheet->setCellValue('H' . $row, $ticket['estado_facturacion']); $sheet->setCellValue('I' . $row, $ticket['agente'] ?? 'Sin asignar');
+    $sheet->setCellValue('G' . $row, (float) $ticket['costo']); $sheet->setCellValue('H' . $row, $ticket['estado_facturacion']); $sheet->setCellValue('I' . $row, $ticket['agente'] ?? 'Sin asignar');
+    $sheet->getStyle('G' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
     $sheet->setCellValue('J' . $row, $ticket['fecha_creacion']); $sheet->setCellValue('K' . $row, $ticket['moneda']);
     $row++;
 }

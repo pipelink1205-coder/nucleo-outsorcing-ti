@@ -34,6 +34,11 @@ if (!isset($_SESSION['configuracion'])) {
 
 $current_page = basename($_SERVER['PHP_SELF']);
 $rol = rol_actual();
+// Normalizar también sesiones abiertas antes de la migración regional.
+if (in_array($_SESSION['configuracion']['moneda_simbolo'] ?? '', ['S/','S/.','PEN','soles'], true)) {
+    $_SESSION['configuracion']['moneda_simbolo'] = '$ COP';
+}
+
 $paginas_empresa = [
     'index.php', 'equipos.php', 'equipo_agregar.php', 'empleados.php', 'empleado_agregar.php',
     'gestion_catalogos.php', 'catalogo_editar.php', 'tickets.php', 'cambiar_password.php', 'logout.php',

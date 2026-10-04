@@ -96,14 +96,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
             $stmt_old->execute([$id_ticket]);
             $valores_antiguos = $stmt_old->fetch(PDO::FETCH_ASSOC);
             $log_cambios = [];
-            if ($nuevo_costo != (float)$valores_antiguos['costo']) { $log_cambios[] = "Costo cambiado de '" . ($valores_antiguos['costo'] ?? '0.00') . "' a '" . number_format($nuevo_costo ?? 0, 2) . "'."; }
+            if ($nuevo_costo != (float)$valores_antiguos['costo']) { $log_cambios[] = "Costo cambiado de '" . ($valores_antiguos['costo'] ?? '0.00') . "' a '" . number_format($nuevo_costo ?? 0, 2, ',', '.') . "'."; }
             if ($nueva_moneda != $valores_antiguos['moneda']) { $log_cambios[] = "Moneda cambiada de '" . ($valores_antiguos['moneda'] ?? 'N/A') . "' a '" . $nueva_moneda . "'."; }
             if ($nuevo_estado_facturacion != $valores_antiguos['estado_facturacion']) { $log_cambios[] = "Estado de facturación cambiado de '" . ($valores_antiguos['estado_facturacion'] ?? 'N/A') . "' a '" . $nuevo_estado_facturacion . "'."; }
             if ($nuevo_medio_pago != $valores_antiguos['medio_pago']) { $log_cambios[] = "Medio de pago establecido a '" . ($nuevo_medio_pago ?? 'N/A') . "'."; }
             if (!empty($log_cambios)) {
                 $pdo->prepare("UPDATE Tickets SET costo = ?, moneda = ?, estado_facturacion = ?, medio_pago = ? WHERE id_ticket = ?")->execute([$nuevo_costo, $nueva_moneda, $nuevo_estado_facturacion, $nuevo_medio_pago, $id_ticket]);
                 if ($nuevo_estado_facturacion == 'Pagado' && $valores_antiguos['estado_facturacion'] != 'Pagado') {
-                    $comentario_log = "Se registró el pago del ticket por {$nombre_agente_autor} con los siguientes detalles:\n" . "- Monto: " . htmlspecialchars($nueva_moneda) . " " . number_format($nuevo_costo ?? 0, 2) . "\n" . "- Medio de Pago: " . htmlspecialchars($nuevo_medio_pago) . "\n" . "- Estado: Pagado";
+                    $comentario_log = "Se registró el pago del ticket por {$nombre_agente_autor} con los siguientes detalles:\n" . "- Monto: " . htmlspecialchars($nueva_moneda) . " " . number_format($nuevo_costo ?? 0, 2, ',', '.') . "\n" . "- Medio de Pago: " . htmlspecialchars($nuevo_medio_pago) . "\n" . "- Estado: Pagado";
                 } else {
                     $comentario_log = "Se actualizaron los detalles de facturación por {$nombre_agente_autor}:\n- " . implode("\n- ", $log_cambios);
                 }
@@ -245,8 +245,8 @@ $is_ticket_finalizado = in_array($ticket['estado'], ['Resuelto', 'Cerrado', 'Anu
                     <div class="alert alert-success" role="alert"><i class="bi bi-check-circle-fill"></i> Este ticket ya ha sido pagado. No se permiten más cambios.</div>
                 <?php endif; ?>
                 <form action="ver_ticket.php?id=<?php echo $id_ticket; ?>" method="POST">
-                    <div class="mb-3"><label for="costo" class="form-label">Costo</label><input type="text" class="form-control" id="costo" name="costo" value="<?php echo htmlspecialchars($ticket['costo'] ?? ''); ?>" <?php if ($costos_bloqueados) echo 'disabled'; ?>></div>
-                    <div class="mb-3"><label for="moneda" class="form-label">Moneda</label><input type="text" class="form-control" id="moneda" name="moneda" value="<?php echo htmlspecialchars($ticket['moneda'] ?? 'PEN'); ?>" <?php if ($costos_bloqueados) echo 'disabled'; ?>></div>
+                    <div class="mb-3"><label for="costo" class="form-label">Costo</label><input type="number" min="0" step="0.01" class="form-control" id="costo" name="costo" value="<?php echo htmlspecialchars($ticket['costo'] ?? ''); ?>" <?php if ($costos_bloqueados) echo 'disabled'; ?>></div>
+                    <div class="mb-3"><label for="moneda" class="form-label">Moneda (COP = pesos colombianos)</label><input type="text" class="form-control" id="moneda" name="moneda" maxlength="3" value="<?php echo htmlspecialchars($ticket['moneda'] ?? 'COP'); ?>" <?php if ($costos_bloqueados) echo 'disabled'; ?>></div>
                     <div class="mb-3">
                         <label for="estado_facturacion" class="form-label">Estado de Facturación</label>
                         <select class="form-select" id="estado_facturacion" name="estado_facturacion" <?php if ($costos_bloqueados) echo 'disabled'; ?>>

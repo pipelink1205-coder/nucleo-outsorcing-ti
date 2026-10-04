@@ -108,7 +108,7 @@ $historial_reparaciones = $stmt_reparaciones->get_result();
                                 <td><?php echo nl2br(htmlspecialchars($rep['observaciones_salida'] ?? '---')); ?></td>
                                 
                                 <td class="text-end">
-                                    <?php echo htmlspecialchars($_SESSION['configuracion']['moneda_simbolo'] ?? 'S/'); ?> <?php echo number_format($rep['costo'], 2); ?>
+                                    <?php echo htmlspecialchars($_SESSION['configuracion']['moneda_simbolo'] ?? '$ COP'); ?> <?php echo number_format($rep['costo'], 2, ',', '.'); ?>
                                 </td>
                                 
                                 <td>

@@ -61,7 +61,7 @@ $cargos = $conexion->query("SELECT * FROM cargos WHERE estado = 'Activo' AND id_
     <div class="card-body">
         <form action="empleados.php" method="GET">
             <div class="row g-3">
-                <div class="col-md-4"><label class="form-label">Buscar por DNI o Nombre</label><input type="text" class="form-control form-control-sm" name="texto" value="<?php echo htmlspecialchars($filtro_texto); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Buscar por Documento o Nombre</label><input type="text" class="form-control form-control-sm" name="texto" value="<?php echo htmlspecialchars($filtro_texto); ?>"></div>
                 <?php if ($id_sucursal_usuario === null): ?>
                 <div class="col-md-4"><label class="form-label">Sucursal</label><select class="form-select form-select-sm" name="sucursal"><option value="">Todas</option><?php if ($sucursales) { mysqli_data_seek($sucursales, 0); while($s = $sucursales->fetch_assoc()) { echo "<option value='{$s['id']}' ".($filtro_sucursal == $s['id'] ? 'selected' : '').">".htmlspecialchars($s['nombre'])."</option>"; }} ?></select></div>
                 <?php endif; ?>
@@ -91,7 +91,7 @@ $cargos = $conexion->query("SELECT * FROM cargos WHERE estado = 'Activo' AND id_
                 <thead class="table-dark">
                     <tr>
                         <?php if ($id_sucursal_usuario === null) echo '<th>Sucursal</th>'; ?>
-                        <th>DNI</th><th>Apellidos y Nombres</th><th>Cargo</th><th>Área</th><th>Estado</th><th>Acciones</th>
+                        <th>Documento</th><th>Apellidos y Nombres</th><th>Cargo</th><th>Área</th><th>Estado</th><th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>

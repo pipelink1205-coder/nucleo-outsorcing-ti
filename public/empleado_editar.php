@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $check->store_result();
 
         if ($check->num_rows > 0) {
-            $mensaje = "El DNI ya está registrado por otro empleado.";
+            $mensaje = "El Documento ya está registrado por otro empleado.";
             $tipo_mensaje = "warning";
         } else {
             $sql = "UPDATE empleados SET 
@@ -135,7 +135,7 @@ $cargos = $stmt_cargos->get_result();
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-bold">DNI <span class="text-danger">*</span></label>
+                    <label class="form-label fw-bold">Documento <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" name="dni" value="<?php echo htmlspecialchars($empleado['dni']); ?>" required>
                 </div>
 
