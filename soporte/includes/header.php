@@ -18,7 +18,7 @@ $puede_crear = $admin_total || in_array($portal_rol, ['administrador','empleado'
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/inventario_ti/css/identidad.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars(inventario_url('css/identidad.css')); ?>?v=<?php echo time(); ?>">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
@@ -150,8 +150,8 @@ $puede_crear = $admin_total || in_array($portal_rol, ['administrador','empleado'
 
         <div id="sidebar-wrapper">
             <div class="sidebar-heading">
-                <a href="/inventario_ti/modulos.php" class="brand-lockup text-white text-decoration-none justify-content-center">
-                    <img src="/inventario_ti/img/smarttech-logo.png" alt="Smart Tech Security" width="46" height="46">
+                <a href="<?php echo htmlspecialchars(inventario_url('modulos.php')); ?>" class="brand-lockup text-white text-decoration-none justify-content-center">
+                    <img src="<?php echo htmlspecialchars(inventario_url('img/smarttech-logo.png')); ?>" alt="Smart Tech Security" width="46" height="46">
                     <span class="text-start">
                         <span class="brand-name">Smart Tech</span>
                         <span class="brand-tag">Tickets</span>
@@ -163,7 +163,7 @@ $puede_crear = $admin_total || in_array($portal_rol, ['administrador','empleado'
             </div>
             
             <div class="list-group list-group-flush mt-3">
-                <a href="/inventario_ti/modulos.php" class="list-group-item list-group-item-action">
+                <a href="<?php echo htmlspecialchars(inventario_url('modulos.php')); ?>" class="list-group-item list-group-item-action">
                     <i class="bi bi-grid me-2"></i> Módulos
                 </a>
                 <a href="index.php" class="list-group-item list-group-item-action <?php echo ($current_page == 'index.php') ? 'active' : ''; ?>">
@@ -177,8 +177,8 @@ $puede_crear = $admin_total || in_array($portal_rol, ['administrador','empleado'
                 <?php endif; ?>
 
                 <?php if ($puede_crear && $portal_rol !== 'empleado'): ?>
-                    <a href="../../public/gestion_usuarios.php" class="list-group-item list-group-item-action"><i class="bi bi-person-badge-fill me-2"></i> Usuarios compartidos</a>
-                    <a href="../../public/gestion_catalogos.php" class="list-group-item list-group-item-action"><i class="bi bi-building me-2"></i> Organización compartida</a>
+                    <a href="<?php echo htmlspecialchars(inventario_url('gestion_usuarios.php')); ?>" class="list-group-item list-group-item-action"><i class="bi bi-person-badge-fill me-2"></i> Usuarios compartidos</a>
+                    <a href="<?php echo htmlspecialchars(inventario_url('gestion_catalogos.php')); ?>" class="list-group-item list-group-item-action"><i class="bi bi-building me-2"></i> Organización compartida</a>
                 <?php endif; ?>            </div>
         </div>
         <div id="page-content-wrapper">
@@ -208,10 +208,10 @@ $puede_crear = $admin_total || in_array($portal_rol, ['administrador','empleado'
                                     <?php echo htmlspecialchars($_SESSION['nombre_completo'] ?? 'Usuario'); ?>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="navbarDropdown">
-                                    <li><a class="dropdown-item py-2" href="../../public/cambiar_password.php"><i class="bi bi-key me-2 text-primary"></i> Cambiar Contraseña</a></li>
+                                    <li><a class="dropdown-item py-2" href="<?php echo htmlspecialchars(inventario_url('cambiar_password.php')); ?>"><i class="bi bi-key me-2 text-primary"></i> Cambiar Contraseña</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item py-2" href="/inventario_ti/modulos.php"><i class="bi bi-grid me-2 text-primary"></i> Volver a módulos</a></li>
-                                    <li><a class="dropdown-item py-2 text-danger" href="/inventario_ti/logout.php"><i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión</a></li>
+                                    <li><a class="dropdown-item py-2" href="<?php echo htmlspecialchars(inventario_url('modulos.php')); ?>"><i class="bi bi-grid me-2 text-primary"></i> Volver a módulos</a></li>
+                                    <li><a class="dropdown-item py-2 text-danger" href="<?php echo htmlspecialchars(inventario_url('logout.php')); ?>"><i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -221,12 +221,12 @@ $puede_crear = $admin_total || in_array($portal_rol, ['administrador','empleado'
 
             <div class="container-fluid pt-3 px-3 px-md-4">
                 <div class="module-switch" role="navigation" aria-label="Módulos">
-                    <a class="module-switch-link" href="/inventario_ti/index.php"><i class="bi bi-laptop"></i> Inventario</a>
+                    <a class="module-switch-link" href="<?php echo htmlspecialchars(inventario_url('index.php')); ?>"><i class="bi bi-laptop"></i> Inventario</a>
                     <a class="module-switch-link active" href="index.php"><i class="bi bi-ticket-perforated"></i> Tickets</a>
                     <?php if ($portal_rol === 'operador'): ?>
-                        <a class="module-switch-link" href="/inventario_ti/informes.php"><i class="bi bi-file-earmark-text"></i> Informes</a>
+                        <a class="module-switch-link" href="<?php echo htmlspecialchars(inventario_url('informes.php')); ?>"><i class="bi bi-file-earmark-text"></i> Informes</a>
                     <?php endif; ?>
-                    <a class="module-switch-link module-switch-all" href="/inventario_ti/modulos.php">Todos</a>
+                    <a class="module-switch-link module-switch-all" href="<?php echo htmlspecialchars(inventario_url('modulos.php')); ?>">Todos</a>
                 </div>
                 <?php if (!empty($_SESSION['portal_empresa_nombre'])): ?>
                 <div class="empresa-bar d-md-none">

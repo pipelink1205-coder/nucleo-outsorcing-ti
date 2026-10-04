@@ -96,3 +96,14 @@ Se reemplazó la etiqueta DNI por Documento en empleados, búsquedas, selectores
 Los nuevos tickets guardan COP (pesos colombianos), y la configuración del inventario usa `$ COP`. Los reportes e impresión usan separadores colombianos: `1.234,56`. Excel exporta costos como números y mantiene la moneda en su columna independiente.
 
 Ejecutar `php migrations/localizacion_colombia.php` después de la migración compartida. Puede repetirse y normaliza también el símbolo heredado de soles; las sesiones abiertas se actualizan al cargar el encabezado. No convierte importes ni cambia monedas históricas. En la base local no había tickets ni reparaciones con importes pendientes de conversión. La migración regional se aplicó el 4 de octubre de 2026.
+## Revisión posterior
+
+El [informe del 4 de octubre de 2026](revision-integracion-2026-10-04.md) registra 165 comprobaciones, las correcciones y los pendientes de despliegue. El [plan posterior](plan-siguientes-etapas.md) describe las tres etapas solicitadas, todavía sin implementar.
+
+## Empresas nuevas sin inventario
+
+La [adaptación del formulario interno](tickets-empresas-vacias.md) incluye una migración adicional para solicitantes libres y catálogo inicial. Ensayada solo en copias: 189 comprobaciones correctas. Aplicarla antes de desplegar el formulario nuevo.
+
+## Puesta en uso local del ajuste
+
+La migración de solicitantes se aplicó tras verificar la restauración de ambas bases. Pasaron 31 comprobaciones HTTP en Apache real y se retiraron los fixtures. Véase [puesta en uso local](puesta-uso-local-tickets.md) para respaldo, entorno y recuperación.

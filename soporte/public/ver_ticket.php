@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
                 $stmt_comentario->execute([$id_ticket, $id_agente_autor, $comentario_texto, $es_privado]);
                 $id_comentario_nuevo = $pdo->lastInsertId();
                 if ($archivos_subidos) {
-                    $upload_dir = __DIR__ . '/../uploads/';
+                    $upload_dir = rtrim(soporte_raiz_adjuntos(), '/\\') . DIRECTORY_SEPARATOR;
                     if (!is_dir($upload_dir)) { mkdir($upload_dir, 0755, true); }
                     foreach ($_FILES['adjuntos']['name'] as $key => $name) {
                         if ($_FILES['adjuntos']['error'][$key] == UPLOAD_ERR_OK) {
@@ -67,12 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
         }
 
         if (isset($_POST['asignar_ticket']) && $_SESSION['id_rol'] == 1) {
-            $validar = $pdo->prepare('SELECT u.id_usuario_nucleo FROM agentes a JOIN usuarios u ON u.id_usuario=a.id_usuario WHERE a.id_agente=?');
-            $validar->execute([(int) $_POST['id_nuevo_agente']]);
-            $usuario_asignado = (int) $validar->fetchColumn();
-            $q = $core->prepare("SELECT u.id FROM usuarios u JOIN usuario_roles ur ON ur.id_usuario=u.id JOIN roles r ON r.id=ur.id_rol WHERE u.id=? AND u.activo=1 AND (u.id_empresa=? OR (u.id_empresa IS NULL AND r.nombre_rol='Operador'))");
-            $q->execute([$usuario_asignado, $soporte_ctx['empresa']]);
-            if (!$q->fetchColumn()) { throw new RuntimeException('Agente no autorizado', 403); }
+            $agentes = array_column(soporte_agentes($core,$pdo,$soporte_ctx), 'id_agente');
+            if (!in_array((int) ($_POST['id_nuevo_agente'] ?? 0), array_map('intval',$agentes), true)) { throw new RuntimeException('Agente no autorizado', 403); }
             $id_nuevo_agente = $_POST['id_nuevo_agente'];
             $stmt_agente_anterior = $pdo->prepare("SELECT u.nombre_completo FROM Tickets t LEFT JOIN Agentes a ON t.id_agente_asignado = a.id_agente LEFT JOIN Usuarios u ON a.id_usuario = u.id_usuario WHERE t.id_ticket = ?");
             $stmt_agente_anterior->execute([$id_ticket]);
@@ -140,17 +136,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
 }
 
 // --- OBTENER DATOS PARA MOSTRAR EN LA PÁGINA ---
-$stmt = $pdo->prepare("SELECT t.*, c.nombre AS nombre_cliente, u.nombre_completo AS nombre_agente, tc.nombre_tipo FROM Tickets AS t JOIN Clientes AS c ON t.id_cliente = c.id_cliente LEFT JOIN Agentes AS ag ON t.id_agente_asignado = ag.id_agente LEFT JOIN Usuarios AS u ON ag.id_usuario = u.id_usuario LEFT JOIN TiposDeCaso AS tc ON t.id_tipo_caso = tc.id_tipo_caso WHERE t.id_ticket = ?");
+$stmt = $pdo->prepare("SELECT t.*, COALESCE(t.solicitante_nombre,c.nombre,'Sin solicitante histórico') AS nombre_cliente, u.nombre_completo AS nombre_agente, tc.nombre_tipo FROM Tickets AS t LEFT JOIN Clientes AS c ON t.id_cliente = c.id_cliente LEFT JOIN Agentes AS ag ON t.id_agente_asignado = ag.id_agente LEFT JOIN Usuarios AS u ON ag.id_usuario = u.id_usuario LEFT JOIN TiposDeCaso AS tc ON t.id_tipo_caso = tc.id_tipo_caso WHERE t.id_ticket = ?");
 $stmt->execute([$id_ticket]);
 $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$ticket) { header('Location: index.php'); exit(); }
 
 $agentes_disponibles = soporte_agentes($core, $pdo, $soporte_ctx);
+$creador=$core->prepare('SELECT nombre FROM usuarios WHERE id=?');
+$creador->execute([$ticket['id_solicitante_usuario']]);
+$nombre_creador=$creador->fetchColumn() ?: 'No registrado históricamente';
 $stmt_comentarios = $pdo->prepare("SELECT com.*, CASE WHEN com.tipo_autor = 'Cliente' THEN cli.nombre WHEN com.tipo_autor = 'Agente' THEN usu.nombre_completo ELSE 'Desconocido' END AS nombre_autor FROM Comentarios AS com LEFT JOIN Clientes AS cli ON com.tipo_autor = 'Cliente' AND com.id_autor = cli.id_cliente LEFT JOIN Agentes AS ag ON com.tipo_autor = 'Agente' AND com.id_autor = ag.id_agente LEFT JOIN Usuarios AS usu ON ag.id_usuario = usu.id_usuario WHERE com.id_ticket = ? ORDER BY com.fecha_creacion ASC");
 $stmt_comentarios->execute([$id_ticket]);
 $comentarios = $stmt_comentarios->fetchAll(PDO::FETCH_ASSOC);
 $comentarios = array_filter($comentarios, function ($c) use ($soporte_ctx) { return !$c['es_privado'] || in_array($soporte_ctx['rol'], ['operador', 'administrador', 'auditor'], true); });
+$autores = array_filter(array_map('intval', array_column($comentarios,'id_usuario_nucleo')));
+if ($autores) {
+    $nombres = $core->query('SELECT id,nombre FROM usuarios WHERE id IN (' . implode(',', array_unique($autores)) . ')')->fetchAll(PDO::FETCH_KEY_PAIR);
+    foreach ($comentarios as &$comentario) { $comentario['nombre_autor'] = $nombres[$comentario['id_usuario_nucleo']] ?? $comentario['nombre_autor']; }
+    unset($comentario);
+}
 $stmt_adjuntos = $pdo->prepare("SELECT * FROM Archivos_Adjuntos WHERE id_ticket = ? AND id_comentario IS NOT NULL");
 $stmt_adjuntos->execute([$id_ticket]);
 $adjuntos_con_comentario = $stmt_adjuntos->fetchAll(PDO::FETCH_ASSOC);
@@ -178,13 +183,15 @@ $is_ticket_finalizado = in_array($ticket['estado'], ['Resuelto', 'Cerrado', 'Anu
         <div class="card mb-4">
             <div class="card-header fw-bold">Detalles del Ticket</div>
             <div class="card-body">
-                <p><strong>Cliente:</strong> <?php echo htmlspecialchars($ticket['nombre_cliente']); ?></p>
+                <p><strong>Solicitante:</strong> <?php echo htmlspecialchars($ticket['nombre_cliente']); ?></p>
                 <?php foreach (['id_empresa_portal' => ['empresas','Empresa'], 'id_sucursal' => ['sucursales','Sucursal'], 'id_solicitante' => ['empleados','Solicitante'], 'id_equipo' => ['equipos','Equipo']] as $columna => [$tabla,$titulo]): ?>
                 <p><strong><?php echo $titulo; ?>:</strong> <?php
                     if (empty($ticket[$columna])) { echo $columna === 'id_equipo' ? 'Sin equipo' : 'Pendiente de clasificación'; }
                     else { $q = $core->prepare("SELECT * FROM `$tabla` WHERE id=?"); $q->execute([$ticket[$columna]]); $r = $q->fetch(); echo htmlspecialchars($r['nombre'] ?? $r['codigo_inventario'] ?? (($r['nombres'] ?? '') . ' ' . ($r['apellidos'] ?? ''))); }
                 ?></p>
                 <?php endforeach; ?>
+                <p><strong>Creado por:</strong> <?php echo htmlspecialchars($nombre_creador); ?></p>
+                <p><strong>Contacto:</strong> <?php echo htmlspecialchars($ticket['solicitante_contacto'] ?? 'No registrado'); ?></p>
                 <p><strong>Agente Asignado:</strong> <?php echo htmlspecialchars($ticket['nombre_agente'] ?? 'Sin asignar'); ?></p>
                 <p><strong>Tipo de Caso:</strong> <?php echo htmlspecialchars($ticket['nombre_tipo'] ?? 'No especificado'); ?></p>
                 <p><strong>Estado:</strong> <span class="badge bg-<?php echo $status_classes[$ticket['estado']] ?? 'light'; ?> fs-6"><?php echo htmlspecialchars($ticket['estado']); ?></span></p>

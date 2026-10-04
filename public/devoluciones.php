@@ -1,7 +1,19 @@
 <?php
 require_once '../templates/header.php';
 
-// ... (lógica PHP sin cambios) ...
+$ctx = $GLOBALS['inventario_ctx'];
+$sql = "SELECT a.id AS id_asignacion, emp.nombres, emp.apellidos, eq.codigo_inventario,
+               ma.nombre AS marca_nombre, mo.nombre AS modelo_nombre
+        FROM asignaciones a JOIN empleados emp ON emp.id=a.id_empleado
+        JOIN equipos eq ON eq.id=a.id_equipo
+        LEFT JOIN marcas ma ON ma.id=eq.id_marca LEFT JOIN modelos mo ON mo.id=eq.id_modelo
+        WHERE a.estado_asignacion='Activa' AND eq.id_empresa=?";
+$parametros = [$ctx['empresa']];
+if ($ctx['sucursal'] !== null) { $sql .= ' AND eq.id_sucursal=?'; $parametros[]=$ctx['sucursal']; }
+$stmt = $conexion->prepare($sql);
+$stmt->bind_param(str_repeat('i',count($parametros)), ...$parametros);
+$stmt->execute();
+$resultado = $stmt->get_result();
 
 ?>
 
@@ -30,14 +42,7 @@ require_once '../templates/header.php';
                                 <td><?php echo htmlspecialchars($asignacion['codigo_inventario']); ?></td>
                                 <td><?php echo htmlspecialchars($asignacion['marca_nombre'] . ' ' . $asignacion['modelo_nombre']); ?></td>
                                 <td>
-                                    <form action="../includes/procesar_devolucion.php" method="POST" class="d-flex gap-2" onsubmit="return confirm('¿Confirmas la devolución de este equipo?');">
-                                        <input type="hidden" name="id_asignacion" value="<?php echo $asignacion['id_asignacion']; ?>">
-                                        <select class="form-select form-select-sm" name="estado_equipo_devolucion" required>
-                                            <option value="Disponible">Devolver (Disponible)</option>
-                                            <option value="En Reparacion">Devolver (a Reparación)</option>
-                                        </select>
-                                        <button type="submit" class="btn btn-danger btn-sm text-nowrap"><i class="bi bi-arrow-return-left"></i> Registrar</button>
-                                    </form>
+                                    <a class="btn btn-danger btn-sm" href="asignacion_devolver.php?id=<?php echo (int)$asignacion['id_asignacion']; ?>">Registrar devolución</a>
                                 </td>
                             </tr>
                         <?php endwhile; ?>

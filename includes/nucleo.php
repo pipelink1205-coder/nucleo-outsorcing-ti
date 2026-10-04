@@ -1,5 +1,6 @@
 <?php
 // Fuente única de identidad y organización para ambos módulos.
+require_once __DIR__ . '/rutas.php';
 function nucleo_db(): PDO
 {
     static $db;
@@ -9,7 +10,7 @@ function nucleo_db(): PDO
     return $db;
 }
 
-function nucleo_contexto(PDO $db, array $sesion): array
+function nucleo_usuario(PDO $db, array $sesion): array
 {
     $stmt = $db->prepare('SELECT u.*, r.nombre_rol FROM usuarios u JOIN usuario_roles ur ON ur.id_usuario=u.id JOIN roles r ON r.id=ur.id_rol WHERE u.id=? AND u.activo=1');
     $stmt->execute([(int) ($sesion['user_id'] ?? 0)]);
@@ -17,7 +18,12 @@ function nucleo_contexto(PDO $db, array $sesion): array
     if (count($filas) !== 1) {
         throw new RuntimeException('Identidad no válida', 403);
     }
-    $u = $filas[0];
+    return $filas[0];
+}
+
+function nucleo_contexto(PDO $db, array $sesion): array
+{
+    $u = nucleo_usuario($db, $sesion);
     if (!empty($u['id_empleado'])) {
         $v = $db->prepare('SELECT id_sucursal FROM empleados WHERE id=? AND id_empresa=?');
         $v->execute([$u['id_empleado'], $u['id_empresa']]);
@@ -26,12 +32,18 @@ function nucleo_contexto(PDO $db, array $sesion): array
     }
     $rol = strtolower($u['nombre_rol']);
     $empresa = $rol === 'operador' && !$u['id_empresa'] ? (int) ($sesion['empresa_activa_id'] ?? 0) : (int) $u['id_empresa'];
-    $stmt = $db->prepare("SELECT id FROM empresas WHERE id=? AND estado='Activa'");
+    $stmt = $db->prepare("SELECT id,nombre,slug FROM empresas WHERE id=? AND estado='Activa'");
     $stmt->execute([$empresa]);
-    if (!$stmt->fetchColumn() || !in_array($rol, ['operador', 'administrador', 'auditor', 'empleado'], true)) {
+    $empresaFila = $stmt->fetch();
+    if (!$empresaFila || !in_array($rol, ['operador', 'administrador', 'auditor', 'empleado'], true)) {
         throw new RuntimeException('Seleccione una empresa autorizada', 403);
     }
-    return ['usuario' => (int) $u['id'], 'empresa' => $empresa, 'sucursal' => $u['id_sucursal'] ? (int) $u['id_sucursal'] : null, 'empleado' => !empty($u['id_empleado']) ? (int) $u['id_empleado'] : null, 'rol' => $rol, 'nombre' => $u['nombre'], 'email' => $u['email']];
+    if ($u['id_sucursal']) {
+        $stmt = $db->prepare('SELECT id FROM sucursales WHERE id=? AND id_empresa=?');
+        $stmt->execute([$u['id_sucursal'], $empresa]);
+        if (!$stmt->fetchColumn()) { throw new RuntimeException('Sucursal de usuario fuera de su empresa', 403); }
+    }
+    return ['usuario' => (int) $u['id'], 'empresa' => $empresa, 'empresa_nombre' => $empresaFila['nombre'], 'empresa_slug' => $empresaFila['slug'], 'sucursal' => $u['id_sucursal'] ? (int) $u['id_sucursal'] : null, 'empleado' => !empty($u['id_empleado']) ? (int) $u['id_empleado'] : null, 'rol' => $rol, 'nombre' => $u['nombre'], 'email' => $u['email']];
 }
 
 function nucleo_referencia(PDO $db, array $ctx, string $tabla, int $id, ?int $sucursal = null): array
@@ -44,7 +56,7 @@ function nucleo_referencia(PDO $db, array $ctx, string $tabla, int $id, ?int $su
         : "SELECT * FROM `$tabla` WHERE id=? AND id_empresa=?");
     $stmt->execute([$id, $ctx['empresa']]);
     $fila = $stmt->fetch();
-    if (!$fila || ($sucursal && isset($fila['id_sucursal']) && (int) $fila['id_sucursal'] !== $sucursal) || ($ctx['sucursal'] && ($tabla === 'sucursales' ? $id !== $ctx['sucursal'] : isset($fila['id_sucursal']) && (int) $fila['id_sucursal'] !== $ctx['sucursal']))) {
+    if (!$fila || ($sucursal && array_key_exists('id_sucursal', $fila) && (int) $fila['id_sucursal'] !== $sucursal) || ($ctx['sucursal'] && ($tabla === 'sucursales' ? $id !== $ctx['sucursal'] : array_key_exists('id_sucursal', $fila) && (int) $fila['id_sucursal'] !== $ctx['sucursal']))) {
         throw new RuntimeException('Referencia fuera del ámbito autorizado', 404);
     }
     return $fila;

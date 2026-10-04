@@ -16,7 +16,7 @@ if (!empty($filtro_cliente)) { $where_conditions[] = "t.id_cliente = :cliente"; 
 if (!empty($filtro_facturacion)) { $where_conditions[] = "t.estado_facturacion = :facturacion"; $params[':facturacion'] = $filtro_facturacion; }
 
 // Consulta SQL con todas las columnas
-$sql = "SELECT t.id_ticket, c.nombre AS cliente, t.asunto, tc.nombre_tipo, t.estado, t.prioridad, t.costo, t.moneda, t.estado_facturacion, u.nombre_completo AS agente, t.fecha_creacion FROM Tickets AS t JOIN Clientes AS c ON t.id_cliente = c.id_cliente LEFT JOIN TiposDeCaso AS tc ON t.id_tipo_caso = tc.id_tipo_caso LEFT JOIN Agentes AS ag ON t.id_agente_asignado = ag.id_agente LEFT JOIN Usuarios AS u ON ag.id_usuario = u.id_usuario";
+$sql = "SELECT t.id_ticket, COALESCE(t.solicitante_nombre,c.nombre,'Sin solicitante histórico') AS cliente, t.asunto, tc.nombre_tipo, t.estado, t.prioridad, t.costo, t.moneda, t.estado_facturacion, u.nombre_completo AS agente, t.fecha_creacion FROM Tickets AS t LEFT JOIN Clientes AS c ON t.id_cliente = c.id_cliente LEFT JOIN TiposDeCaso AS tc ON t.id_tipo_caso = tc.id_tipo_caso LEFT JOIN Agentes AS ag ON t.id_agente_asignado = ag.id_agente LEFT JOIN Usuarios AS u ON ag.id_usuario = u.id_usuario";
 if (!empty($where_conditions)) { $sql .= " WHERE " . implode(' AND ', $where_conditions); }
 $sql .= " ORDER BY t.id_ticket DESC";
 $stmt = $pdo->prepare($sql);
