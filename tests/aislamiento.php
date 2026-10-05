@@ -8,13 +8,14 @@ $admin = new PDO('mysql:host=' . (getenv('DB_HOST') ?: 'localhost') . ';charset=
 $prefix = 'test_outsourcing_' . bin2hex(random_bytes(4));
 $coreName = $prefix . '_core'; $supportName = $prefix . '_support';
 $proceso = null;
+$bridgeFile=null;$bridgeUrl=null;$bridgeHeader='';$modoApache=in_array('--apache',$argv,true);$apacheLog='C:/xampp/apache/logs/error.log';$apacheLogInicio=0;
 $log = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $prefix . '.log';
 $mapPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $prefix . '.json';
 $excelPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $prefix . '.xlsx';
 $uploadDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $prefix . '_adjuntos';
 $origenCore = getenv('DB_NAME') ?: 'inventario_ti';
 $origenSupport = getenv('SUPPORT_DB_NAME') ?: 'soporte_db';
-$checks = 0;
+$checks = 0;$sesionesPrueba=[];
 function comprobar(bool $condicion, string $mensaje): void {
     global $checks;
     if (!$condicion) { throw new RuntimeException($mensaje); }
@@ -60,21 +61,31 @@ function huellas(PDO $db, array $esquemas): array {
     ksort($resultado); return $resultado;
 }
 function sesion_prueba(int $usuario): string {
-    $id = bin2hex(random_bytes(16)); session_id($id); session_start();
+    global $sesionesPrueba;
+    $id = bin2hex(random_bytes(16));$sesionesPrueba[]=$id; session_id($id); session_start();
     $_SESSION = ['user_id'=>$usuario, 'soporte_csrf'=>'token-prueba', 'inventario_csrf'=>'token-prueba']; session_write_close(); return $id;
 }
+function url_prueba(string $url): string {
+    global $bridgeUrl;
+    if(!$bridgeUrl){return $url;}
+    $path=parse_url($url,PHP_URL_PATH);$query=parse_url($url,PHP_URL_QUERY);
+    return $bridgeUrl.'?__ruta='.rawurlencode($path).($query?'&'.$query:'');
+}
 function solicitar(string $url, string $sesion = '', ?array $datos = null): array {
-    $headers = $sesion ? 'Cookie: PHPSESSID=' . $sesion . "\r\n" : '';
+    global $bridgeHeader;$url=url_prueba($url);
+    $headers = $bridgeHeader.($sesion ? 'Cookie: PHPSESSID=' . $sesion . "\r\n" : '');
     $opciones = ['method'=>$datos === null ? 'GET':'POST','ignore_errors'=>true,'follow_location'=>0,'timeout'=>15,'header'=>$headers . ($datos === null ? '':'Content-Type: application/x-www-form-urlencoded'), 'content'=>$datos === null ? '':http_build_query($datos)];
     $body = file_get_contents($url, false, stream_context_create(['http'=>$opciones]));
     preg_match('/\s(\d{3})\s/', $http_response_header[0] ?? '', $m);
+    global $sesionesPrueba;foreach($http_response_header as $cabecera){if(preg_match('/^Set-Cookie: PHPSESSID=([a-zA-Z0-9,-]+)/i',$cabecera,$cookiePrueba)){$sesionesPrueba[]=$cookiePrueba[1];}}
     return [(int) ($m[1] ?? 0), $body ?: '', $http_response_header];
 }
 function solicitar_archivo(string $url,string $sesion,array $datos,string $nombre,string $contenido): array {
+    global $bridgeHeader;$url=url_prueba($url);
     $boundary='prueba'.bin2hex(random_bytes(8)); $body='';
     foreach($datos as $campo=>$valor){$body.="--$boundary\r\nContent-Disposition: form-data; name=\"$campo\"\r\n\r\n$valor\r\n";}
     $body.="--$boundary\r\nContent-Disposition: form-data; name=\"adjuntos[]\"; filename=\"$nombre\"\r\nContent-Type: text/plain\r\n\r\n$contenido\r\n--$boundary--\r\n";
-    $r=file_get_contents($url,false,stream_context_create(['http'=>['method'=>'POST','ignore_errors'=>true,'follow_location'=>0,'header'=>"Cookie: PHPSESSID=$sesion\r\nContent-Type: multipart/form-data; boundary=$boundary",'content'=>$body,'timeout'=>15]]));
+    $r=file_get_contents($url,false,stream_context_create(['http'=>['method'=>'POST','ignore_errors'=>true,'follow_location'=>0,'header'=>$bridgeHeader."Cookie: PHPSESSID=$sesion\r\nContent-Type: multipart/form-data; boundary=$boundary",'content'=>$body,'timeout'=>15]]));
     preg_match('/\s(\d{3})\s/',$http_response_header[0] ?? '',$m);return[(int)($m[1] ?? 0),$r ?: ''];
 }
 function clasificar_cli(string $archivo, bool $aplicar): int {
@@ -91,6 +102,8 @@ try {
     restaurar_fks($admin,[$origenCore=>$coreName,$origenSupport=>$supportName]);
     mkdir($uploadDir);
     putenv('SUPPORT_UPLOAD_DIR='.$uploadDir);
+    putenv('SUPPORT_PRIVATE_UPLOAD_DIR='.$uploadDir);
+    putenv('SUPPORT_PORTAL_KEY='.bin2hex(random_bytes(32)));
     putenv('DB_NAME=' . $coreName); putenv('SUPPORT_DB_NAME=' . $supportName);
     $core = nucleo_db();
     require __DIR__ . '/../migrations/compartir_nucleo.php';
@@ -103,6 +116,7 @@ try {
     migrar_compartido($core, $pdo); migrar_compartido($core, $pdo);
     require __DIR__.'/../migrations/tickets_solicitantes.php';
     migrar_solicitantes($pdo); migrar_solicitantes($pdo);
+    require __DIR__.'/../migrations/portal_publico.php';migrar_portal_publico($core,$pdo);migrar_portal_publico($core,$pdo);
     require __DIR__ . '/../migrations/localizacion_colombia.php';
     migrar_colombia($core,$pdo); migrar_colombia($core,$pdo);
     $moneda=$pdo->query("SHOW COLUMNS FROM tickets LIKE 'moneda'")->fetch(PDO::FETCH_ASSOC);
@@ -141,15 +155,44 @@ try {
     comprobar(soporte_validar_vinculos($core,$pdo,$a['ctx'],['id_sucursal'=>$a['sucursal'],'id_solicitante'=>$a['empleado'],'id_cliente'=>$a['cliente']])[2]===null, 'Ticket acepta equipo opcional');
     $fk=false; try { $pdo->prepare('UPDATE tickets SET id_sucursal=? WHERE id_ticket=?')->execute([$b['sucursal'],$a['ticket']]); } catch (PDOException $e) { $fk=$e->getCode()==='23000'; }
     comprobar($fk,'Base de datos rechaza vínculo entre empresas');
+    if($modoApache){
+        if(!in_array(getenv('DB_HOST')?:'localhost',['localhost','127.0.0.1'],true)){throw new RuntimeException('Apache de prueba exige MySQL local');}
+        $bridgeFile=dirname(__DIR__).'/public/prueba_portal_'.bin2hex(random_bytes(12)).'.php';$secreto=bin2hex(random_bytes(32));
+        $env=['DB_NAME'=>$coreName,'SUPPORT_DB_NAME'=>$supportName,'DB_HOST'=>getenv('DB_HOST')?:'localhost','DB_USER'=>getenv('DB_USER')?:'root','DB_PASS'=>getenv('DB_PASS')?:'','SUPPORT_PORTAL_KEY'=>getenv('SUPPORT_PORTAL_KEY'),'SUPPORT_PRIVATE_UPLOAD_DIR'=>$uploadDir,'SUPPORT_UPLOAD_DIR'=>$uploadDir];
+        $codigo=<<<'PHP'
+<?php
+if(!in_array($_SERVER['REMOTE_ADDR']??'',['127.0.0.1','::1'],true)||!hash_equals(__SECRETO__,$_SERVER['HTTP_X_PRUEBA_LOCAL']??'')){http_response_code(404);exit;}
+if(PHP_SAPI!=='apache2handler'||!function_exists('apache_setenv')){http_response_code(503);exit;}
+// apache_setenv cambia el entorno de esta petición; no usar putenv en un Apache con hilos.
+foreach(__ENV__ as $k=>$v){if(!apache_setenv($k,$v)||getenv($k)!==$v){http_response_code(503);exit;}}
+$ruta=$_GET['__ruta']??'';
+if(!is_string($ruta)||!preg_match('~^/(public|soporte/public|inventario_ti|inventario_ti/soporte)/[a-zA-Z0-9_]+\.php$~',$ruta)){http_response_code(404);exit;}
+if(strpos($ruta,'/inventario_ti/soporte/')===0){$rel='/soporte/public/'.substr($ruta,strlen('/inventario_ti/soporte/'));}
+elseif(strpos($ruta,'/inventario_ti/')===0){$rel='/public/'.substr($ruta,strlen('/inventario_ti/'));}else{$rel=$ruta;}
+$root=dirname(__DIR__);$archivo=realpath($root.$rel);
+if(!$archivo||!is_file($archivo)||strpos($archivo,realpath($root).DIRECTORY_SEPARATOR)!==0){http_response_code(404);exit;}
+unset($_GET['__ruta']);$_SERVER['SCRIPT_NAME']=$ruta;$_SERVER['PHP_SELF']=$ruta;$_SERVER['SCRIPT_FILENAME']=$archivo;
+chdir(dirname($archivo));require $archivo;
+PHP;
+        $codigo=str_replace(['__SECRETO__','__ENV__'],[var_export($secreto,true),var_export($env,true)],$codigo);file_put_contents($bridgeFile,$codigo);
+        $bridgeUrl='http://127.0.0.1/inventario_ti/'.basename($bridgeFile);$bridgeHeader='X-Prueba-Local: '.$secreto."\r\n";$base='http://127.0.0.1';
+        $apacheLogInicio=is_file($apacheLog)?filesize($apacheLog):0;
+        file_put_contents($log,'');
+    }else{
     $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$errstr); $address=stream_socket_get_name($socket,false); fclose($socket);
     $port=(int)substr(strrchr($address,':'),1);
     $proceso=proc_open([PHP_BINARY,'-S','127.0.0.1:'.$port,'-t',dirname(__DIR__),__DIR__.'/router.php'],[0=>['pipe','r'],1=>['file',$log,'a'],2=>['file',$log,'a']],$pipes,dirname(__DIR__));
     $base='http://127.0.0.1:'.$port;
     for($i=0;$i<30;$i++){ $s=@fsockopen('127.0.0.1',$port); if($s){fclose($s);break;} usleep(100000); }
+    }
     $sa=sesion_prueba($a['usuario']); $sb=sesion_prueba($b['usuario']);
+    $core->prepare('INSERT INTO usuarios(nombre,email,password) VALUES (?,?,?)')->execute(['Operador SmartTech',$prefix.'staff@test.invalid',password_hash('Prueba123!',PASSWORD_DEFAULT)]);$staff=(int)$core->lastInsertId();
+    $core->exec("INSERT INTO usuario_roles(id_usuario,id_rol) SELECT $staff,id FROM roles WHERE nombre_rol='Operador'");
+    $ss=sesion_prueba($staff);session_id($ss);session_start();$_SESSION['empresa_activa_id']=$a['empresa'];session_write_close();
+
     comprobar(solicitar($base.'/soporte/public/index.php')[0]===403,'HTTP anónimo rechazado');
     [$status,$body,$headers]=solicitar($base.'/inventario_ti/login.php','',['email'=>$prefix.'A@test.invalid','password'=>'Prueba123!']);
-    preg_match('/PHPSESSID=([^;]+)/',implode("\n",$headers),$cookie);
+    preg_match_all('/PHPSESSID=([^;]+)/',implode("\n",$headers),$cookies);$cookie=[null,end($cookies[1])];
     comprobar($status===302 && !empty($cookie[1]),'Login entrega sesión real');
     $loginSesion=$cookie[1];
     comprobar(solicitar($base.'/inventario_ti/soporte/index.php',$loginSesion)[0]===200,'Misma sesión de login abre soporte por alias');
@@ -233,10 +276,10 @@ try {
 
     [$status,$body]=solicitar($base.'/soporte/public/ver_ticket.php?id='.$nuevo['id_ticket'],$sa);
     comprobar($status===200 && strpos($body,'Admin A')!==false,'Primer comentario muestra identidad real');
-    comprobar(solicitar_archivo($base.'/soporte/public/ver_ticket.php?id='.$a['ticket'],$sa,['csrf'=>'token-prueba','agregar_comentario'=>1,'comentario'=>'NOTA_INTERNA_PRUEBA','es_privado'=>1],'prueba.txt','CONTENIDO_PRIVADO_PRUEBA')[0]===302,'Adjunto privado se carga en carpeta temporal');
+    comprobar(solicitar_archivo($base.'/soporte/public/ver_ticket.php?id='.$a['ticket'],$ss,['csrf'=>'token-prueba','agregar_comentario'=>1,'comentario'=>'NOTA_INTERNA_PRUEBA','es_privado'=>1],'prueba.txt','CONTENIDO_PRIVADO_PRUEBA')[0]===302,'Adjunto privado se carga en carpeta temporal');
     $adjunto=(int)$pdo->query("SELECT id_adjunto FROM archivos_adjuntos WHERE nombre_original='prueba.txt' ORDER BY id_adjunto DESC LIMIT 1")->fetchColumn();
-    [$status,$body]=solicitar($base.'/soporte/public/descargar_adjunto.php?id='.$adjunto,$sa);
-    comprobar($status===200 && $body==='CONTENIDO_PRIVADO_PRUEBA','Autor autorizado descarga adjunto exacto');
+    [$status,$body]=solicitar($base.'/soporte/public/descargar_adjunto.php?id='.$adjunto,$ss);
+    comprobar($status===200 && $body==='CONTENIDO_PRIVADO_PRUEBA','Operador SmartTech descarga adjunto privado exacto');
     comprobar(solicitar($base.'/soporte/public/descargar_adjunto.php?id='.$adjunto,$sb)[0]===404,'Empresa B no descarga adjunto A');
     comprobar(solicitar($base.'/soporte/public/descargar_adjunto.php?id='.$adjunto)[0]===403,'Descarga anónima rechazada');
     $pdo->exec('UPDATE archivos_adjuntos SET id_ticket='.$b['ticket'].' WHERE id_adjunto='.$adjunto);
@@ -244,7 +287,7 @@ try {
     $pdo->exec('UPDATE archivos_adjuntos SET id_ticket='.$a['ticket'].' WHERE id_adjunto='.$adjunto);
     $rutaAdjunto=$pdo->query('SELECT ruta_archivo FROM archivos_adjuntos WHERE id_adjunto='.$adjunto)->fetchColumn();
     $pdo->prepare('UPDATE archivos_adjuntos SET ruta_archivo=? WHERE id_adjunto=?')->execute(['uploads/../../config/database.php',$adjunto]);
-    comprobar(solicitar($base.'/soporte/public/descargar_adjunto.php?id='.$adjunto,$sa)[0]===404,'Descarga rechaza recorrido fuera de carpeta');
+    comprobar(solicitar($base.'/soporte/public/descargar_adjunto.php?id='.$adjunto,$ss)[0]===404,'Descarga rechaza recorrido fuera de carpeta');
     $pdo->prepare('UPDATE archivos_adjuntos SET ruta_archivo=? WHERE id_adjunto=?')->execute([$rutaAdjunto,$adjunto]);
     $agenteB=(int)$pdo->query('SELECT id_agente FROM agentes WHERE id_usuario='.$b['idSoporte'])->fetchColumn();
     comprobar(solicitar($base.'/soporte/public/ver_ticket.php?id='.$a['ticket'],$sa,['csrf'=>'token-prueba','asignar_ticket'=>1,'id_nuevo_agente'=>$agenteB])[0]===403,'No se asignan agentes de otra empresa');
@@ -288,6 +331,7 @@ try {
     $core->prepare('INSERT INTO sucursales(nombre,id_empresa) VALUES (?,?)')->execute(['Segunda sede',$empresaVacia]);
     comprobar(solicitar($base.'/soporte/public/crear_ticket.php',$sv,$libre)[0]===422,'Usuario empresarial con varias sedes debe seleccionar una');
     $libre['id_sucursal']=$sedeUnica;$libre['asunto']='TICKET_MULTISEDE';comprobar(solicitar($base.'/soporte/public/crear_ticket.php',$sv,$libre)[0]===302,'Usuario empresarial selecciona sede propia');
+    require __DIR__.'/portal_publico_casos.php';
     comprobar(solicitar($base.'/soporte/public/reset_sistema.php',$sa)[0]===403,'HTTP reset global bloqueado');
     $core->exec("UPDATE usuario_roles SET id_rol=(SELECT id FROM roles WHERE nombre_rol='Auditor') WHERE id_usuario=".$a['usuario']);
     comprobar(solicitar($base.'/soporte/public/ver_ticket.php?id='.$a['ticket'],$sa,['csrf'=>'token-prueba','cambiar_estado'=>1,'nuevo_estado'=>'Cerrado'])[0]===403,'HTTP auditor no puede escribir aunque conserve sesión admin');
@@ -304,9 +348,13 @@ try {
     $core->exec('UPDATE usuarios SET activo=0 WHERE id='.$a['usuario']);
     comprobar(solicitar($base.'/soporte/public/index.php',$sa)[0]===403,'HTTP usuario desactivado pierde acceso inmediatamente');
     comprobar(huellas($admin,[$origenCore,$origenSupport])===$antesReales,'Huellas de todas las tablas reales permanecen iguales');
+    if($modoApache && is_file($apacheLog)){clearstatcache(true,$apacheLog);$offset=min($apacheLogInicio,filesize($apacheLog));$nuevo=file_get_contents($apacheLog,false,null,$offset);file_put_contents($log,$nuevo?:'');}
     comprobar(!preg_match('/PHP (Warning|Fatal error|Parse error)/',file_get_contents($log)), 'Sin advertencias ni errores PHP durante las solicitudes');
     echo "\n$checks comprobaciones correctas. Bases originales sin modificaciones.\n";
 } finally {
+    if(session_status()===PHP_SESSION_ACTIVE){session_write_close();}
+    foreach(array_unique($sesionesPrueba) as $sid){if(preg_match('/^[a-zA-Z0-9,-]{16,128}$/',$sid)){session_id($sid);session_start();$_SESSION=[];session_destroy();}}
+    if($bridgeFile&&is_file($bridgeFile)){unlink($bridgeFile);}
     if (is_resource($proceso)) { proc_terminate($proceso); proc_close($proceso); }
     foreach ([$supportName,$coreName] as $nombre) { if (preg_match('/^test_outsourcing_[a-f0-9]{8}_(core|support)$/',$nombre)) { $admin->exec("DROP DATABASE IF EXISTS `$nombre`"); } }
     if (is_file($log)) { unlink($log); }

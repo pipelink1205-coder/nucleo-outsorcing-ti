@@ -124,6 +124,7 @@ require_once '../includes/header.php';
     .bg-gradient-dark { background: linear-gradient(135deg, #343a40 0%, #1d2124 100%); }
 </style>
 
+<?php if (soporte_notas_internas($soporte_ctx)): ?><p><a class="btn btn-outline-primary" href="enlace_empresa.php">Enlace de solicitudes de esta empresa</a></p><?php endif; ?>
 <div class="row g-4 mb-4">
     <div class="col-lg-3 col-md-6">
         <div class="card card-stat bg-gradient-blue shadow">

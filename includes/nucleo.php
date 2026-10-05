@@ -31,6 +31,8 @@ function nucleo_contexto(PDO $db, array $sesion): array
         if (!$sucursalEmpleado || ($u['id_sucursal'] && (int) $u['id_sucursal'] !== (int) $sucursalEmpleado)) { throw new RuntimeException('Vínculo de empleado no válido', 403); }
     }
     $rol = strtolower($u['nombre_rol']);
+    if ($rol === 'empleado' && empty($u['id_empleado'])) { throw new RuntimeException('La cuenta debe vincularse a un empleado de su empresa',403); }
+    $sucursalEfectiva = $rol === 'empleado' ? (int)$sucursalEmpleado : ($u['id_sucursal'] ? (int)$u['id_sucursal'] : null);
     $empresa = $rol === 'operador' && !$u['id_empresa'] ? (int) ($sesion['empresa_activa_id'] ?? 0) : (int) $u['id_empresa'];
     $stmt = $db->prepare("SELECT id,nombre,slug FROM empresas WHERE id=? AND estado='Activa'");
     $stmt->execute([$empresa]);
@@ -43,7 +45,7 @@ function nucleo_contexto(PDO $db, array $sesion): array
         $stmt->execute([$u['id_sucursal'], $empresa]);
         if (!$stmt->fetchColumn()) { throw new RuntimeException('Sucursal de usuario fuera de su empresa', 403); }
     }
-    return ['usuario' => (int) $u['id'], 'empresa' => $empresa, 'empresa_nombre' => $empresaFila['nombre'], 'empresa_slug' => $empresaFila['slug'], 'sucursal' => $u['id_sucursal'] ? (int) $u['id_sucursal'] : null, 'empleado' => !empty($u['id_empleado']) ? (int) $u['id_empleado'] : null, 'rol' => $rol, 'nombre' => $u['nombre'], 'email' => $u['email']];
+    return ['usuario' => (int) $u['id'], 'empresa' => $empresa, 'empresa_nombre' => $empresaFila['nombre'], 'empresa_slug' => $empresaFila['slug'], 'personal_smarttech' => $rol === 'operador' && !$u['id_empresa'], 'sucursal' => $sucursalEfectiva, 'empleado' => !empty($u['id_empleado']) ? (int) $u['id_empleado'] : null, 'rol' => $rol, 'nombre' => $u['nombre'], 'email' => $u['email']];
 }
 
 function nucleo_referencia(PDO $db, array $ctx, string $tabla, int $id, ?int $sucursal = null): array
@@ -64,6 +66,6 @@ function nucleo_referencia(PDO $db, array $ctx, string $tabla, int $id, ?int $su
 
 function nucleo_error(Throwable $e): void
 {
-    http_response_code(in_array($e->getCode(), [403, 404, 422], true) ? $e->getCode() : 500);
+    http_response_code(in_array($e->getCode(), [400,403,404,410,413,422,429,503], true) ? $e->getCode() : 500);
     exit(http_response_code() === 500 ? 'No se pudo procesar la solicitud.' : htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
 }

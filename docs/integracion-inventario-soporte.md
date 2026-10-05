@@ -107,3 +107,7 @@ La [adaptación del formulario interno](tickets-empresas-vacias.md) incluye una 
 ## Puesta en uso local del ajuste
 
 La migración de solicitantes se aplicó tras verificar la restauración de ambas bases. Pasaron 31 comprobaciones HTTP en Apache real y se retiraron los fixtures. Véase [puesta en uso local](puesta-uso-local-tickets.md) para respaldo, entorno y recuperación.
+
+## Etapa 1 — Portal público y flujo de empleado
+
+[Configuración y operación del portal](portal-publico-soporte.md): implementación en rama separada, migración aditiva ensayada solo en copias y 290 comprobaciones tanto con PHP aislado como con Apache real conectado a copias. La migración del portal no está aplicada en las bases de uso.

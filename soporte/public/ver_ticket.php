@@ -1,6 +1,8 @@
 <?php
 require_once '../includes/auth_check.php';
 require_once '../config/database.php';
+require_once __DIR__.'/../includes/adjuntos.php';
+require_once __DIR__.'/../includes/portal_publico.php';
 
 $id_ticket = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$id_ticket) {
@@ -13,6 +15,8 @@ catch (Throwable $e) { nucleo_error($e); }
 
 // Autorizar antes de cualquier lectura relacionada o escritura.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
+    try { $archivos_validos=soporte_validar_archivos($_FILES['adjuntos']??[]); } catch(Throwable $e){nucleo_error($e);}
+    $guardados=[];
     $pdo->beginTransaction();
     try {
         $ultimo_comentario = (int) $pdo->query('SELECT COALESCE(MAX(id_comentario),0) FROM comentarios')->fetchColumn();
@@ -34,27 +38,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
                 $stmt_comentario = $pdo->prepare("INSERT INTO Comentarios (id_ticket, id_autor, tipo_autor, comentario, es_privado) VALUES (?, ?, 'Agente', ?, ?)");
                 $stmt_comentario->execute([$id_ticket, $id_agente_autor, $comentario_texto, $es_privado]);
                 $id_comentario_nuevo = $pdo->lastInsertId();
-                if ($archivos_subidos) {
-                    $upload_dir = rtrim(soporte_raiz_adjuntos(), '/\\') . DIRECTORY_SEPARATOR;
-                    if (!is_dir($upload_dir)) { mkdir($upload_dir, 0755, true); }
-                    foreach ($_FILES['adjuntos']['name'] as $key => $name) {
-                        if ($_FILES['adjuntos']['error'][$key] == UPLOAD_ERR_OK) {
-                            $nombre_original = basename($name);
-                            $extension = pathinfo($nombre_original, PATHINFO_EXTENSION);
-                            $nombre_guardado = uniqid('ticket' . $id_ticket . '_', true) . '.' . $extension;
-                            $ruta_archivo_completa = $upload_dir . $nombre_guardado;
-                            $ruta_archivo_db = 'uploads/' . $nombre_guardado;
-                            if (move_uploaded_file($_FILES['adjuntos']['tmp_name'][$key], $ruta_archivo_completa)) {
-                                $stmt_adjunto = $pdo->prepare("INSERT INTO Archivos_Adjuntos (id_ticket, id_comentario, nombre_original, nombre_guardado, ruta_archivo, tipo_mime) VALUES (?, ?, ?, ?, ?, ?)");
-                                $stmt_adjunto->execute([$id_ticket, $id_comentario_nuevo, $nombre_original, $nombre_guardado, $ruta_archivo_db, $_FILES['adjuntos']['type'][$key]]);
-                            }
-                        }
-                    }
-                }
+                if (soporte_portal_instalado($pdo) && !$es_privado) { $pdo->prepare('UPDATE comentarios SET visible_portal=1 WHERE id_comentario=?')->execute([$id_comentario_nuevo]); }
+                soporte_guardar_archivos($pdo,$id_ticket,(int)$id_comentario_nuevo,$archivos_validos,$guardados);
                 $accion_realizada = true;
             }
         }
         
+        if (isset($_POST['revocar_seguimiento'])) {
+            if (!soporte_notas_internas($soporte_ctx)) { throw new RuntimeException('Acción exclusiva de SmartTech',403); }
+            portal_requerir($pdo);
+            $pdo->prepare('UPDATE soporte_seguimiento SET revocado_en=UTC_TIMESTAMP() WHERE id_ticket=?')->execute([$id_ticket]);
+            $pdo->prepare('INSERT INTO soporte_eventos_portal(id_empresa,id_usuario,accion,creado_en) VALUES (?,?,?,UTC_TIMESTAMP())')->execute([$soporte_ctx['empresa'],$soporte_ctx['usuario'],'revocar_seguimiento']);
+            $accion_realizada=true;
+        }
         if (isset($_POST['cambiar_estado'])) {
             $nuevo_estado = htmlspecialchars($_POST['nuevo_estado']);
             $pdo->prepare("UPDATE Tickets SET estado = ? WHERE id_ticket = ?")->execute([$nuevo_estado, $id_ticket]);
@@ -125,10 +121,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['id_usuario'])) {
             exit();
         } else {
             $pdo->rollBack();
+        soporte_borrar_archivos($guardados);
         }
 
     } catch (Exception $e) {
         $pdo->rollBack();
+        soporte_borrar_archivos($guardados);
         if (in_array($e->getCode(), [403,404,422], true)) { nucleo_error($e); }
         header("Location: ver_ticket.php?id=$id_ticket&status=error&msg=" . urlencode($e->getMessage()));
         exit();
@@ -145,11 +143,12 @@ if (!$ticket) { header('Location: index.php'); exit(); }
 $agentes_disponibles = soporte_agentes($core, $pdo, $soporte_ctx);
 $creador=$core->prepare('SELECT nombre FROM usuarios WHERE id=?');
 $creador->execute([$ticket['id_solicitante_usuario']]);
-$nombre_creador=$creador->fetchColumn() ?: 'No registrado históricamente';
+$nombre_creador=$creador->fetchColumn() ?: (($ticket['origen']??'interno')==='publico' ? 'Solicitud pública sin usuario autenticado' : 'No registrado históricamente');
 $stmt_comentarios = $pdo->prepare("SELECT com.*, CASE WHEN com.tipo_autor = 'Cliente' THEN cli.nombre WHEN com.tipo_autor = 'Agente' THEN usu.nombre_completo ELSE 'Desconocido' END AS nombre_autor FROM Comentarios AS com LEFT JOIN Clientes AS cli ON com.tipo_autor = 'Cliente' AND com.id_autor = cli.id_cliente LEFT JOIN Agentes AS ag ON com.tipo_autor = 'Agente' AND com.id_autor = ag.id_agente LEFT JOIN Usuarios AS usu ON ag.id_usuario = usu.id_usuario WHERE com.id_ticket = ? ORDER BY com.fecha_creacion ASC");
 $stmt_comentarios->execute([$id_ticket]);
 $comentarios = $stmt_comentarios->fetchAll(PDO::FETCH_ASSOC);
-$comentarios = array_filter($comentarios, function ($c) use ($soporte_ctx) { return !$c['es_privado'] || in_array($soporte_ctx['rol'], ['operador', 'administrador', 'auditor'], true); });
+foreach ($comentarios as &$c) { if (!empty($c['autor_publico'])) { $c['nombre_autor']='Solicitante (sin identidad verificada)'; } else { $c['nombre_autor']=$c['nombre_autor']??'Autor histórico'; } } unset($c);
+$comentarios = array_filter($comentarios, function ($c) use ($soporte_ctx) { return !$c['es_privado'] || soporte_notas_internas($soporte_ctx); });
 $autores = array_filter(array_map('intval', array_column($comentarios,'id_usuario_nucleo')));
 if ($autores) {
     $nombres = $core->query('SELECT id,nombre FROM usuarios WHERE id IN (' . implode(',', array_unique($autores)) . ')')->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -178,6 +177,9 @@ $is_ticket_finalizado = in_array($ticket['estado'], ['Resuelto', 'Cerrado', 'Anu
     <a href="index.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
 </div>
 
+<?php if (soporte_notas_internas($soporte_ctx) && soporte_portal_instalado($pdo) && ($ticket['origen']??'interno')==='publico'): ?>
+<form method="POST" class="mb-3"><button class="btn btn-outline-danger" name="revocar_seguimiento" value="1">Revocar seguimiento público de este ticket</button></form>
+<?php endif; ?>
 <div class="row g-4">
     <div class="col-lg-4">
         <div class="card mb-4">
@@ -192,6 +194,7 @@ $is_ticket_finalizado = in_array($ticket['estado'], ['Resuelto', 'Cerrado', 'Anu
                 <?php endforeach; ?>
                 <p><strong>Creado por:</strong> <?php echo htmlspecialchars($nombre_creador); ?></p>
                 <p><strong>Contacto:</strong> <?php echo htmlspecialchars($ticket['solicitante_contacto'] ?? 'No registrado'); ?></p>
+                <?php if (!empty($ticket['solicitante_telefono'])): ?><p><strong>Teléfono:</strong> <?php echo htmlspecialchars($ticket['solicitante_telefono']); ?></p><?php endif; ?>
                 <p><strong>Agente Asignado:</strong> <?php echo htmlspecialchars($ticket['nombre_agente'] ?? 'Sin asignar'); ?></p>
                 <p><strong>Tipo de Caso:</strong> <?php echo htmlspecialchars($ticket['nombre_tipo'] ?? 'No especificado'); ?></p>
                 <p><strong>Estado:</strong> <span class="badge bg-<?php echo $status_classes[$ticket['estado']] ?? 'light'; ?> fs-6"><?php echo htmlspecialchars($ticket['estado']); ?></span></p>
@@ -311,7 +314,7 @@ $is_ticket_finalizado = in_array($ticket['estado'], ['Resuelto', 'Cerrado', 'Anu
                 <form action="ver_ticket.php?id=<?php echo $id_ticket; ?>" method="POST" enctype="multipart/form-data">
                     <div class="mb-3"><textarea class="form-control" name="comentario" rows="3" placeholder="Escribe tu comentario aquí..."></textarea></div>
                     <div class="mb-3"><label for="adjuntos" class="form-label">Adjuntar Archivos (Opcional)</label><input class="form-control" type="file" id="adjuntos" name="adjuntos[]" multiple></div>
-                    <?php if ($_SESSION['id_rol'] == 1): ?><div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="es_privado" id="es_privado"><label class="form-check-label" for="es_privado">Marcar como comentario privado</label></div><?php endif; ?>
+                    <?php if (soporte_notas_internas($soporte_ctx)): ?><div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="es_privado" id="es_privado"><label class="form-check-label" for="es_privado">Marcar como comentario privado</label></div><?php endif; ?>
                     <button type="submit" name="agregar_comentario" class="btn btn-primary"><i class="bi bi-send"></i> Enviar Comentario</button>
                 </form>
                 <?php endif; ?>

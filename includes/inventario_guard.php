@@ -35,6 +35,7 @@ function inventario_autorizar(): void
         $ctx = nucleo_contexto($core, $_SESSION);
         $GLOBALS['inventario_ctx'] = $ctx;
         $_SESSION['empresa_nombre'] = $ctx['empresa_nombre'];
+        $_SESSION['user_sucursal_id'] = $ctx['sucursal'];
         $_SESSION['empresa_slug'] = $ctx['empresa_slug'];
         $escritura = ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET' || isset($_GET['action']);
         if ($escritura && !in_array($rol, ['operador','administrador'], true) && $ruta !== 'cambiar_password.php') { throw new RuntimeException('Rol de solo lectura en inventario', 403); }
@@ -67,6 +68,10 @@ function inventario_autorizar(): void
         elseif (in_array($ruta, ['catalogo_editar.php','gestion_catalogos.php'], true)) { $tabla=['sucursal'=>'sucursales','area'=>'areas','cargo'=>'cargos','tipo'=>'tipos_equipo','tipo_equipo'=>'tipos_equipo','marca'=>'marcas','modelo'=>'modelos'][$_GET['type'] ?? $_POST['type'] ?? ''] ?? null; }
         $idRegistro = $_GET['id'] ?? $_POST['id'] ?? null;
         if ($tabla && !empty($idRegistro)) { nucleo_referencia($core, $ctx, $tabla, (int) $idRegistro); }
+        if (in_array($ruta,['usuario_agregar.php','usuario_editar.php'],true) && !empty($_POST['id_rol'])) {
+            $q=$core->prepare('SELECT nombre_rol FROM roles WHERE id=?');$q->execute([(int)$_POST['id_rol']]);
+            if (strtolower((string)$q->fetchColumn())==='empleado' && empty($_POST['id_empleado'])) { throw new RuntimeException('El rol Empleado requiere un vínculo explícito al empleado',422); }
+        }
         if (!empty($_POST['id_rol']) && $rol !== 'operador') {
             $q = $core->prepare('SELECT nombre_rol FROM roles WHERE id=?');
             $q->execute([(int) $_POST['id_rol']]);

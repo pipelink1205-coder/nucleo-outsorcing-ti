@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth_check.php';
 require_once '../config/database.php';
+require_once __DIR__.'/../includes/adjuntos.php';
 
 $mensaje_error = '';
 $sucursales = $core->prepare('SELECT id,nombre FROM sucursales WHERE id_empresa=?' . ($soporte_ctx['sucursal'] ? ' AND id=' . (int) $soporte_ctx['sucursal'] : ''));
@@ -11,12 +12,12 @@ $solicitantes->execute([$soporte_ctx['empresa']]);
 $solicitantes = $solicitantes->fetchAll();
 $equipos = $core->prepare('SELECT id,codigo_inventario AS nombre FROM equipos WHERE id_empresa=?' . ($soporte_ctx['sucursal'] ? ' AND id_sucursal=' . (int) $soporte_ctx['sucursal'] : ''));
 $equipos->execute([$soporte_ctx['empresa']]);
-$equipos = $equipos->fetchAll();
+$equipos = $soporte_ctx['rol']==='empleado' ? soporte_equipos_asignados($core,$soporte_ctx) : $equipos->fetchAll();
 $portalEmpresa = $soporte_ctx['empresa'];
 $tipos_de_caso = $pdo->query("SELECT id_tipo_caso, nombre_tipo FROM TiposDeCaso WHERE activo = 1 ORDER BY nombre_tipo ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try { [$id_sucursal, $id_solicitante, $id_equipo] = soporte_validar_vinculos($core, $pdo, $soporte_ctx, $_POST); }
+    try { $archivos_validos=soporte_validar_archivos($_FILES['adjuntos']??[]); [$id_sucursal, $id_solicitante, $id_equipo] = soporte_validar_vinculos($core, $pdo, $soporte_ctx, $_POST); }
     catch (Throwable $e) { nucleo_error($e); }
     // Recopilación de datos del formulario
     $id_cliente = !empty($_POST['id_cliente']) ? (int)$_POST['id_cliente'] : null;
@@ -36,8 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($id_tipo_caso) || empty($asunto) || empty($descripcion)) {
         $mensaje_error = "Por favor, complete todos los campos obligatorios (*).";
     } else {
+        $guardados=[];
         $pdo->beginTransaction();
         try {
+            soporte_bloquear_asignacion($core,$pdo,$soporte_ctx,$id_equipo);
             // 1. Insertar el ticket
             $stmt = $pdo->prepare(
                 "INSERT INTO Tickets (id_cliente, id_tipo_caso, asunto, prioridad, descripcion, estado, id_empresa_portal, id_sucursal, id_solicitante, id_equipo, id_solicitante_usuario, moneda, solicitante_nombre, solicitante_contacto)
@@ -56,36 +59,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id_comentario_inicial = $pdo->lastInsertId();
             $pdo->prepare('UPDATE comentarios SET id_usuario_nucleo=? WHERE id_comentario=?')->execute([$soporte_ctx['usuario'], $id_comentario_inicial]);
 
-            // 3. Procesar múltiples archivos adjuntos si existen
-            if (isset($_FILES['adjuntos']) && !empty(array_filter($_FILES['adjuntos']['name']))) {
-                $upload_dir = rtrim(soporte_raiz_adjuntos(), '/\\') . DIRECTORY_SEPARATOR;
-                if (!is_dir($upload_dir)) { mkdir($upload_dir, 0755, true); }
-
-                foreach ($_FILES['adjuntos']['name'] as $key => $name) {
-                    if ($_FILES['adjuntos']['error'][$key] == UPLOAD_ERR_OK) {
-                        $nombre_original = basename($name);
-                        $extension = pathinfo($nombre_original, PATHINFO_EXTENSION);
-                        $nombre_guardado = uniqid('ticket' . $id_ticket_nuevo . '_', true) . '.' . $extension;
-                        $ruta_archivo_completa = $upload_dir . $nombre_guardado;
-                        $ruta_archivo_db = 'uploads/' . $nombre_guardado;
-
-                        if (move_uploaded_file($_FILES['adjuntos']['tmp_name'][$key], $ruta_archivo_completa)) {
-                            $stmt_adjunto = $pdo->prepare(
-                                "INSERT INTO Archivos_Adjuntos (id_ticket, id_comentario, nombre_original, nombre_guardado, ruta_archivo, tipo_mime)
-                                 VALUES (?, ?, ?, ?, ?, ?)"
-                            );
-                            $stmt_adjunto->execute([$id_ticket_nuevo, $id_comentario_inicial, $nombre_original, $nombre_guardado, $ruta_archivo_db, $_FILES['adjuntos']['type'][$key]]);
-                        }
-                    }
-                }
-            }
+            soporte_guardar_archivos($pdo,(int)$id_ticket_nuevo,(int)$id_comentario_inicial,$archivos_validos,$guardados);
 
             $pdo->commit();
             header("Location: ver_ticket.php?id=" . $id_ticket_nuevo . "&status=created");
             exit();
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $pdo->rollBack();
+            soporte_borrar_archivos($guardados);
+            if ($e instanceof RuntimeException && $e->getCode()===403) { nucleo_error($e); }
             $mensaje_error = 'No se pudo registrar el ticket.';
         }
     }
@@ -119,16 +102,22 @@ require_once '../includes/header.php';
                         <?php foreach($sucursales as $opcion): ?><option value="<?php echo (int)$opcion['id']; ?>"><?php echo htmlspecialchars($opcion['nombre']); ?></option><?php endforeach; ?></select>
                     <?php endif; ?>
                 </div>
+                <?php if ($soporte_ctx['rol']==='empleado'): ?>
+                <div class="col-md-4"><label class="form-label">Solicitante</label><input type="hidden" name="id_solicitante" value="<?php echo (int)$soporte_ctx['empleado']; ?>"><p><?php echo htmlspecialchars($solicitantes[0]['nombre']); ?></p></div>
+                <?php else: ?>
                 <div class="col-md-4"><label class="form-label">Solicitante</label>
                     <select class="form-select" name="id_solicitante" id="id_solicitante"><option value="">Persona no registrada</option>
                     <?php foreach($solicitantes as $opcion): ?><option value="<?php echo (int)$opcion['id']; ?>"><?php echo htmlspecialchars($opcion['nombre']); ?></option><?php endforeach; ?></select>
                 </div>
+                <?php endif; ?>
                 <div class="col-md-4"><label class="form-label">Equipo (opcional)</label>
                     <select class="form-select" name="id_equipo"><option value="">Sin equipo</option>
                     <?php foreach($equipos as $opcion): ?><option value="<?php echo (int)$opcion['id']; ?>"><?php echo htmlspecialchars($opcion['nombre']); ?></option><?php endforeach; ?></select>
                 </div>
+                <?php if ($soporte_ctx['rol']!=='empleado'): ?>
                 <div class="col-md-6" id="persona_nombre"><label class="form-label">Nombre del solicitante *</label><input class="form-control" name="solicitante_nombre" maxlength="200" required></div>
                 <div class="col-md-6" id="persona_contacto"><label class="form-label">Contacto (correo o teléfono) *</label><input class="form-control" name="solicitante_contacto" maxlength="255" required></div>
+                <?php endif; ?>
                 <div class="col-md-6">
                     <label for="id_tipo_caso" class="form-label">Tipo de Caso *</label>
                     <select class="form-select" id="id_tipo_caso" name="id_tipo_caso" required>
@@ -184,5 +173,5 @@ function actualizarPersona() {
         contenedor.querySelector('input').required=!solicitante.value;
     }
 }
-solicitante.addEventListener('change',actualizarPersona); actualizarPersona();
+if (solicitante) { solicitante.addEventListener('change',actualizarPersona); actualizarPersona(); }
 </script>

@@ -47,6 +47,11 @@ function soporte_identidad(PDO $db, array $ctx): int
 
 function soporte_validar_vinculos(PDO $core, PDO $db, array $ctx, array $datos): array
 {
+    if ($ctx['rol']==='empleado') {
+        if (!$ctx['empleado'] || !$ctx['sucursal']) { throw new RuntimeException('Cuenta sin empleado vinculado',403); }
+        if (!empty($datos['id_solicitante']) && (int)$datos['id_solicitante']!==$ctx['empleado']) { throw new RuntimeException('Solicitante no autorizado',403); }
+        $datos['id_solicitante']=$ctx['empleado'];
+    }
     $sucursal = empty($datos['id_sucursal']) ? null : (int) $datos['id_sucursal'];
     $q=$core->prepare('SELECT id FROM sucursales WHERE id_empresa=?'); $q->execute([$ctx['empresa']]);
     $sedes=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
@@ -66,7 +71,10 @@ function soporte_validar_vinculos(PDO $core, PDO $db, array $ctx, array $datos):
         if (!$nombre || !$contacto || mb_strlen($nombre)>200 || mb_strlen($contacto)>255) { throw new RuntimeException('Indique nombre y contacto del solicitante',422); }
     }
     $equipo = empty($datos['id_equipo']) ? null : (int) $datos['id_equipo'];
-    if ($equipo) { nucleo_referencia($core,$ctx,'equipos',$equipo,$sucursal); }
+    if ($equipo) {
+        nucleo_referencia($core,$ctx,'equipos',$equipo,$sucursal);
+        if ($ctx['rol']==='empleado' && !in_array($equipo,array_map('intval',array_column(soporte_equipos_asignados($core,$ctx),'id')),true)) { throw new RuntimeException('Equipo no asignado actualmente a su empleado',403); }
+    }
     // Compatibilidad con peticiones históricas; el formulario nuevo no necesita cliente.
     if (!empty($datos['id_cliente'])) {
         $stmt=$db->prepare('SELECT id_cliente FROM clientes WHERE id_cliente=? AND id_empresa_portal=?');
@@ -87,4 +95,22 @@ function soporte_agentes(PDO $core, PDO $db, array $ctx): array
 function soporte_raiz_adjuntos(): string
 {
     return getenv('SUPPORT_UPLOAD_DIR') ?: __DIR__ . '/../uploads';
+}
+
+function soporte_notas_internas(array $ctx): bool { return !empty($ctx['personal_smarttech']) && $ctx['rol']==='operador'; }
+function soporte_equipos_asignados(PDO $core,array $ctx): array {
+    $q=$core->prepare("SELECT DISTINCT e.id,e.codigo_inventario AS nombre FROM equipos e JOIN asignaciones a ON a.id_equipo=e.id JOIN empleados p ON p.id=a.id_empleado WHERE a.id_empleado=? AND a.id_empresa=? AND p.id_empresa=? AND e.id_empresa=? AND e.id_sucursal=? AND a.estado_asignacion='Activa' AND a.fecha_devolucion IS NULL ORDER BY e.codigo_inventario");
+    $q->execute([$ctx['empleado'],$ctx['empresa'],$ctx['empresa'],$ctx['empresa'],$ctx['sucursal']]);return $q->fetchAll();
+}
+function soporte_portal_instalado(PDO $db): bool {
+    static $ok;
+    if ($ok===null) { $q=$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ('soporte_enlaces_empresa','soporte_seguimiento','soporte_limites_publicos','soporte_eventos_portal')");$ok=(int)$q->fetchColumn()===4; }
+    return $ok;
+}
+
+function soporte_bloquear_asignacion(PDO $core,PDO $db,array $ctx,?int $equipo): void {
+    if($ctx['rol']!=='empleado'||!$equipo){return;}
+    $schema=$core->query('SELECT DATABASE()')->fetchColumn();if(!preg_match('/^[a-zA-Z0-9_]+$/',$schema)){throw new RuntimeException('Esquema no válido');}
+    $q=$db->prepare("SELECT a.id FROM `$schema`.asignaciones a JOIN `$schema`.equipos e ON e.id=a.id_equipo JOIN `$schema`.empleados p ON p.id=a.id_empleado WHERE a.id_equipo=? AND a.id_empleado=? AND a.id_empresa=? AND e.id_empresa=? AND p.id_empresa=? AND e.id_sucursal=? AND a.estado_asignacion='Activa' AND a.fecha_devolucion IS NULL FOR UPDATE");
+    $q->execute([$equipo,$ctx['empleado'],$ctx['empresa'],$ctx['empresa'],$ctx['empresa'],$ctx['sucursal']]);if(!$q->fetchColumn()){throw new RuntimeException('Equipo no asignado actualmente a su empleado',403);}
 }
