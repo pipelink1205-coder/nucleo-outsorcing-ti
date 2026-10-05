@@ -1,6 +1,6 @@
 # Plan posterior a la revisión de integración
 
-Estado actualizado: Etapa 1 implementada en rama separada, aún sin migrar bases de uso; véase [portal público](portal-publico-soporte.md). Etapas 2 y 3 siguen pendientes de implementación. Primero cerrar los pendientes de despliegue del [informe de revisión](revision-integracion-2026-10-04.md); preservar los IDs, datos históricos y contratos actuales.
+Estado actualizado: Etapa 1 implementada en rama separada y preparada en XAMPP local mediante migración autorizada, con enlaces deshabilitados; véase [portal público](portal-publico-soporte.md). Etapas 2 y 3 siguen pendientes de implementación. Primero cerrar los pendientes de despliegue del [informe de revisión](revision-integracion-2026-10-04.md); preservar los IDs, datos históricos y contratos actuales.
 
 ## Etapa 0 — Base estable
 

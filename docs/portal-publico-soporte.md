@@ -2,7 +2,7 @@
 
 ## Alcance y estado
 
-Implementación en `codex/portal-publico-soporte`. Se conservan los tickets internos y los IDs históricos. **No se aplicó la migración del portal a `inventario_ti` ni `soporte_db` del entorno de uso.** Enlaces nuevos deshabilitados por defecto. Sin correo automático, importación Excel, actas o rediseño de navegación.
+Implementación en `codex/portal-publico-soporte`. Se conservan los tickets internos y los IDs históricos. **Actualización local autorizada:** la migración ya está aplicada en `inventario_ti` y `soporte_db`, con clave/almacenamiento preparados y todos los enlaces deshabilitados; ver [registro de habilitación local](habilitacion-local-portal.md). En la entrega inicial solo se habían migrado copias. Enlaces nuevos deshabilitados por defecto. Sin correo automático, importación Excel, actas o rediseño de navegación.
 
 Dos accesos separados:
 
@@ -66,7 +66,7 @@ Orden para un entorno **autorizado posteriormente**:
 
 Es aditiva y repetible: no elimina IDs, tickets, comentarios o vínculos históricos, no crea enlaces habilitados y no publica comentarios históricos. DDL MySQL/MariaDB tiene commit implícito; no afirmar rollback transaccional de esquema. Se ensayó dos veces en copias, comparando campos históricos y las huellas de los originales.
 
-Si el esquema del portal no está instalado, sus rutas responden 503; los tickets internos conservan compatibilidad con el esquema local actual. Esta entrega no cambia configuración Apache ni aplica migraciones reales.
+Si el esquema del portal no está instalado, sus rutas responden 503; los tickets internos conservan compatibilidad con el esquema local actual. La entrega inicial no aplicó migraciones reales. La preparación local posterior sí aplicó la migración con autorización y respaldo verificado, sin cambiar la configuración de Apache.
 
 ## Habilitar y probar en incógnito, Apache local
 
@@ -107,7 +107,7 @@ Modo Apache utiliza alias local y un front controller temporal con nombre aleato
 
 Cobertura: flujo previo de tickets internos/exportaciones; migración repetida/conservación; operador/cliente y CSRF; enlace/empresa falsificados; código ajeno sin exposición; ausencia de asociaciones por email; creación sin login; tokens inválidos/caducados/revocados; ID de ticket no autoriza; renovación/desactivación independientes; respuesta/adjuntos públicos; notas y archivos internos invisibles para público y administradores/auditores de cliente; escape de HTML; ejecutables/MIME falso/tamaño/cantidad rechazados; límites de consultas/creación/respuestas; empleado precargado, sin equipo, equipo propio activo, equipo devuelto/asignado a otro y revocación de asignación tras abrir formulario; cuenta sin vínculo rechazada; login real de empleado. Sin Warning/Fatal/Parse en solicitudes; lint de aplicación verificado.
 
-Límites de verificación: no se hizo revisión visual completa en navegador, análisis antivirus o prueba de estrés/concurrencia masiva; no se modificó configuración productiva ni se implementó entrega de correo. Incógnito sobre las bases de uso requiere primero migración autorizada, aún pendiente.
+Límites de verificación: no se hizo revisión visual completa en navegador, análisis antivirus o prueba de estrés/concurrencia masiva; no se modificó configuración productiva ni se implementó entrega de correo. El entorno local de uso ya está preparado mediante migración autorizada; falta elegir la empresa y habilitar su enlace antes de probar en incógnito.
 
 ## Rollback
 

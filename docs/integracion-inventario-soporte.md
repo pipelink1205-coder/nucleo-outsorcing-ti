@@ -111,3 +111,7 @@ La migración de solicitantes se aplicó tras verificar la restauración de amba
 ## Etapa 1 — Portal público y flujo de empleado
 
 [Configuración y operación del portal](portal-publico-soporte.md): implementación en rama separada, migración aditiva ensayada solo en copias y 290 comprobaciones tanto con PHP aislado como con Apache real conectado a copias. La migración del portal no está aplicada en las bases de uso.
+
+## Preparación local de Etapa 1
+
+La [habilitación local](habilitacion-local-portal.md) registra respaldo/restauración, clave, almacenamiento y migración aplicada por autorización posterior. Las pruebas pasaron 298 comprobaciones por modo y todos los enlaces permanecen deshabilitados hasta que se elija empresa.
