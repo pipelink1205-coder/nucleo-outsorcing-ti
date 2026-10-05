@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/rutas.php';
 
 function modulos_disponibles(): array
 {
@@ -16,7 +17,7 @@ function modulos_disponibles(): array
             'id' => 'tickets',
             'titulo' => 'Tickets',
             'texto' => 'Solicitudes y soporte de la operación que le damos a esta empresa.',
-            'href' => 'soporte/entrar.php',
+            'href' => soporte_url('entrar.php'),
             'icono' => 'bi-ticket-perforated',
             'roles' => ['operador', 'administrador', 'auditor', 'empleado'],
         ],

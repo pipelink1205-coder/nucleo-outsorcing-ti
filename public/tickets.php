@@ -2,5 +2,6 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-header('Location: soporte/entrar.php');
+require_once __DIR__ . '/../includes/rutas.php';
+header('Location: ' . soporte_url('entrar.php'));
 exit();

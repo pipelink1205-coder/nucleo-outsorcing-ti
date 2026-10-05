@@ -261,7 +261,7 @@ $(document).ready(function() {
             $.ajax({
                 url: 'obtener_modelos.php',
                 type: 'POST',
-                data: { id_marca: idMarca },
+                data: { id_marca: idMarca, csrf: <?php echo json_encode($_SESSION['inventario_csrf']); ?> },
                 success: function(response) {
                     $('#id_modelo').html(response);
                 },

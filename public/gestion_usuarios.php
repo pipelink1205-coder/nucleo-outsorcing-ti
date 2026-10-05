@@ -7,7 +7,7 @@ if (!in_array(rol_actual(), ['operador','administrador'], true)) {
     require_once '../templates/footer.php';
     exit();
 }
-$usuarios = $conexion->query("SELECT u.id, u.nombre, u.email, r.nombre_rol, s.nombre as sucursal_nombre FROM usuarios u LEFT JOIN usuario_roles ur ON u.id = ur.id_usuario LEFT JOIN roles r ON ur.id_rol = r.id LEFT JOIN sucursales s ON u.id_sucursal = s.id WHERE u.id_empresa = " . (int) empresa_id_activa() . " ORDER BY u.nombre");
+$usuarios = $conexion->query("SELECT u.id, u.nombre, u.email, r.nombre_rol, s.nombre as sucursal_nombre FROM usuarios u LEFT JOIN usuario_roles ur ON u.id = ur.id_usuario LEFT JOIN roles r ON ur.id_rol = r.id LEFT JOIN sucursales s ON u.id_sucursal = s.id WHERE u.id_empresa = " . (int) empresa_id_activa() . (!empty($inventario_ctx['sucursal']) ? ' AND u.id_sucursal=' . (int) $inventario_ctx['sucursal'] : '') . " ORDER BY u.nombre");
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">

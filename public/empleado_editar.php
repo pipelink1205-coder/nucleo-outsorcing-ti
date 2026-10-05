@@ -220,7 +220,7 @@ $(document).ready(function() {
             $.ajax({
                 url: 'obtener_cargos.php',
                 type: 'POST',
-                data: { id_area: idArea },
+                data: { id_area: idArea, csrf: <?php echo json_encode($_SESSION['inventario_csrf']); ?> },
                 success: function(response) {
                     console.log("Respuesta recibida"); // Debug
                     $('#id_cargo').html(response);

@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conexion->begin_transaction();
     try {
         // 1. Actualizar el estado del equipo
-        $stmt_equipo = $conexion->prepare("UPDATE equipos SET estado = 'En Reparación' WHERE id = ?");
+        $stmt_equipo = $conexion->prepare("UPDATE equipos SET estado = 'En Reparacion' WHERE id = ?");
         $stmt_equipo->bind_param("i", $id_equipo);
         $stmt_equipo->execute();
 

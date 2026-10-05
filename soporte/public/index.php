@@ -84,7 +84,7 @@ if (!empty($filtro_fecha_inicio)) { $where_conditions[] = "DATE(t.fecha_creacion
 if (!empty($filtro_fecha_fin)) { $where_conditions[] = "DATE(t.fecha_creacion) <= :fecha_fin"; $params[':fecha_fin'] = $filtro_fecha_fin; }
 if ($portalEmpresa > 0) { $where_conditions[] = "t.id_empresa_portal = :portal_empresa"; $params[':portal_empresa'] = $portalEmpresa; }
 
-$sql_lista = "SELECT t.id_ticket, t.asunto, t.estado, t.prioridad, t.fecha_creacion, c.nombre AS nombre_cliente, u.nombre_completo AS nombre_agente, tc.nombre_tipo, t.fecha_vencimiento, t.costo, t.moneda, t.estado_facturacion FROM Tickets AS t JOIN Clientes AS c ON t.id_cliente = c.id_cliente LEFT JOIN Agentes AS ag ON t.id_agente_asignado = ag.id_agente LEFT JOIN Usuarios AS u ON ag.id_usuario = u.id_usuario LEFT JOIN TiposDeCaso AS tc ON t.id_tipo_caso = tc.id_tipo_caso";
+$sql_lista = "SELECT t.id_ticket, t.asunto, t.estado, t.prioridad, t.fecha_creacion, COALESCE(t.solicitante_nombre,c.nombre,'Sin solicitante histórico') AS nombre_cliente, u.nombre_completo AS nombre_agente, tc.nombre_tipo, t.fecha_vencimiento, t.costo, t.moneda, t.estado_facturacion FROM Tickets AS t LEFT JOIN Clientes AS c ON t.id_cliente = c.id_cliente LEFT JOIN Agentes AS ag ON t.id_agente_asignado = ag.id_agente LEFT JOIN Usuarios AS u ON ag.id_usuario = u.id_usuario LEFT JOIN TiposDeCaso AS tc ON t.id_tipo_caso = tc.id_tipo_caso";
 if (!empty($where_conditions)) { $sql_lista .= " WHERE " . implode(' AND ', $where_conditions); }
 $sql_lista .= " ORDER BY t.fecha_creacion DESC";
 $stmt_lista = $pdo->prepare($sql_lista);
@@ -124,6 +124,7 @@ require_once '../includes/header.php';
     .bg-gradient-dark { background: linear-gradient(135deg, #343a40 0%, #1d2124 100%); }
 </style>
 
+<?php if (soporte_notas_internas($soporte_ctx)): ?><p><a class="btn btn-outline-primary" href="enlace_empresa.php">Enlace de solicitudes de esta empresa</a></p><?php endif; ?>
 <div class="row g-4 mb-4">
     <div class="col-lg-3 col-md-6">
         <div class="card card-stat bg-gradient-blue shadow">

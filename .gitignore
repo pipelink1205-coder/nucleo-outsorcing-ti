@@ -10,3 +10,7 @@ Thumbs.db
 
 # Respaldos locales de migración (contienen datos privados)
 /.local/
+
+# Adjuntos privados: conservar fuera de Git
+/soporte/uploads/*
+!/soporte/uploads/.htaccess
